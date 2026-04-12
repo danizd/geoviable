@@ -24,24 +24,28 @@ logger = logging.getLogger("geoviable")
 LAYERS_CONFIG = [
     {
         "table": "red_natura_2000",
+        "alias": "rn",
         "display_name": "Red Natura 2000",
         "columns": "rn.nombre, rn.tipo, rn.codigo",
         "extra_fields": {"tipo": "tipo", "codigo": "codigo"},
     },
     {
         "table": "zonas_inundables",
+        "alias": "zi",
         "display_name": "Zonas inundables (SNCZI)",
         "columns": "zi.periodo_retorno, zi.nivel_peligrosidad, zi.demarcacion",
         "extra_fields": {"periodo_retorno": "periodo_retorno"},
     },
     {
         "table": "dominio_publico_hidraulico",
+        "alias": "dph",
         "display_name": "Dominio Público Hidráulico",
         "columns": "dph.tipo, dph.nombre_cauce, dph.categoria",
         "extra_fields": {"nombre_cauce": "nombre_cauce"},
     },
     {
         "table": "vias_pecuarias",
+        "alias": "vp",
         "display_name": "Vías pecuarias",
         "columns": (
             "vp.nombre, vp.tipo_via, vp.anchura_legal_m, vp.longitud_m, "
@@ -51,16 +55,18 @@ LAYERS_CONFIG = [
             "anchura_legal_m": "anchura_legal_m",
             "longitud_afectada_m": "ST_Length(ST_Intersection(vp.geom, up.geom))",
         },
-        "is_linear": True,  # Uses ST_Buffer for area calculation
+        "is_linear": True,
     },
     {
         "table": "espacios_naturales_protegidos",
+        "alias": "enp",
         "display_name": "Espacios Naturales Protegidos",
         "columns": "enp.nombre, enp.categoria, enp.subcategoria, enp.superficie_ha",
         "extra_fields": {"categoria": "categoria"},
     },
     {
         "table": "masas_agua_superficial",
+        "alias": "mas",
         "display_name": "Masas de agua superficiales",
         "columns": (
             "mas.nombre, mas.tipo, mas.categoria, "
@@ -73,6 +79,7 @@ LAYERS_CONFIG = [
     },
     {
         "table": "masas_agua_subterranea",
+        "alias": "masub",
         "display_name": "Masas de agua subterráneas",
         "columns": (
             "masub.nombre, masub.estado_cuantitativo, "
@@ -202,7 +209,7 @@ def _query_layer(
         List of intersected features with overlap metrics.
     """
     geom_json = json.dumps(geometry)
-    table_alias = layer_cfg["table"][:3]  # Short alias for SQL
+    table_alias = layer_cfg["alias"]
     cols = layer_cfg["columns"]
 
     if layer_cfg.get("is_linear"):
@@ -226,12 +233,12 @@ def _query_layer(
                     )
                 ) AS area_interseccion_m2,
                 ROUND(
-                    100.0 * ST_Area(
+                    (100.0 * ST_Area(
                         ST_Intersection(
                             ST_Buffer(vp.geom, vp.anchura_legal_m / 2),
                             up.geom
                         )
-                    ) / pa.area,
+                    ) / pa.area)::numeric,
                     2
                 ) AS porcentaje_solape,
                 ROUND(
@@ -260,7 +267,7 @@ def _query_layer(
                 {cols},
                 ST_Area(ST_Intersection({table_alias}.geom, up.geom)) AS area_interseccion_m2,
                 ROUND(
-                    100.0 * ST_Area(ST_Intersection({table_alias}.geom, up.geom)) / pa.area,
+                    (100.0 * ST_Area(ST_Intersection({table_alias}.geom, up.geom)) / pa.area)::numeric,
                     2
                 ) AS porcentaje_solape
             FROM {layer_cfg["table"]} {table_alias}, user_parcel up, parcel_area pa

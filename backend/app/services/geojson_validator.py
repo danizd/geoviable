@@ -17,10 +17,12 @@ a ValidationError with a machine-readable error code.
 import json
 from typing import Any
 
+import shapely
 from shapely import wkt
 from shapely.errors import TopologicalError
 from shapely.geometry import shape, MultiPolygon, Polygon
 from shapely.validation import make_valid
+from shapely.ops import transform as shapely_transform
 from pyproj import Transformer
 
 from app.config import get_settings
@@ -209,8 +211,7 @@ def validate_geojson(raw: str | dict) -> str:
         )
 
     # ── Step 7: Check area (reproject to EPSG:25830) ──
-    geom_25830 = _transformer_4326_to_25830.transform_geom(geometry)
-    shapely_geom_25830 = shape(geom_25830)
+    shapely_geom_25830 = shapely_transform(_transformer_4326_to_25830.transform, shapely_geom)
     area_m2 = shapely_geom_25830.area
     area_km2 = area_m2 / 1_000_000
 
