@@ -1,37 +1,38 @@
 # GeoViable
 
-> Automated environmental feasibility assessment tool for land parcels and projects in Galicia, Spain.
+> Herramienta automatizada de evaluación de viabilidad ambiental para parcelas y proyectos en Galicia, España.
 
-**Production URL:** https://geoviable.movilab.es/
+**URL de producción:** https://geoviable.movilab.es/
 
-## Overview
+## Descripción
 
-GeoViable is an internal Micro-SaaS B2B tool that automates the evaluation of environmental feasibility for land parcels. It cross-references user-drawn polygons with official environmental layers (Red Natura 2000, flood zones, hydraulic public domain, livestock routes, protected natural spaces, water masses) and generates a technical PDF report instantly.
+GeoViable es una herramienta interna (Micro-SaaS B2B) que automatiza la evaluación de viabilidad ambiental de parcelas. Cruza polígonos definidos por el usuario con capas ambientales oficiales (Red Natura 2000, zonas inundables, Dominio Público Hidráulico, vías pecuarias, Espacios Naturales Protegidos, masas de agua) y genera un informe técnico PDF al instante.
 
-## Tech Stack
+## Stack Tecnológico
 
-| Component | Technology |
+| Componente | Tecnología |
 |---|---|
-| **Infrastructure** | Oracle Cloud Always Free (ARM, 24 GB RAM, 200 GB disk) |
-| **Orchestration** | Docker Compose |
-| **Database** | PostgreSQL 15+ with PostGIS 3.4+ |
+| **Infraestructura** | Oracle Cloud Always Free (ARM, 24 GB RAM, 200 GB disco) |
+| **Orquestación** | Docker Compose |
+| **Base de datos** | PostgreSQL 15+ con PostGIS 3.4+ |
 | **Backend** | Python 3.11 + FastAPI |
-| **PDF Generation** | WeasyPrint (Jinja2 templates → HTML → PDF) |
-| **Static Map** | contextily + matplotlib + geopandas |
-| **Frontend** | React.js + React Leaflet |
-| **Web Server** | Nginx (reverse proxy + static files) |
+| **Generación PDF** | WeasyPrint (plantillas Jinja2 → HTML → PDF) |
+| **Mapa estático** | contextily + matplotlib + geopandas |
+| **Frontend** | React.js + React Leaflet + Leaflet-Geoman |
+| **Servidor web** | Nginx (proxy inverso + archivos estáticos) |
 | **HTTPS** | Let's Encrypt / Cloudflare |
 
-## Project Structure
+## Estructura del Proyecto
 
 ```
 geoviable/
-├── .env.example                  # Environment variables template (safe to commit)
-├── .env                          # Local environment (NEVER commit — gitignored)
+├── .env.example                  # Plantilla de variables de entorno (seguro commitear)
+├── .env                          # Entorno local (NUNCA commitear — gitignored)
 ├── .gitignore
-├── docker-compose.yml            # Production Docker orchestration
-├── README.md                     # ← You are here
-├── specs/                        # Full technical specifications
+├── docker-compose.yml            # Orquestación Docker de producción
+├── README.md                     # ← Estás aquí
+├── start.bat                     # Script de inicio local (Windows)
+├── specs/                        # Especificaciones técnicas completas
 │   ├── Arquitectura_y_flujos.md
 │   ├── Especificaciones_frontend.md
 │   ├── Especificaciones_backend.md
@@ -42,302 +43,319 @@ geoviable/
 │   ├── Seguridad_y_configuracion.md
 │   ├── DevOps_y_despliegue.md
 │   └── Glosario.md
-├── backend/                      # FastAPI Python backend
+├── backend/                      # Backend FastAPI Python
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── app/
-│   │   ├── main.py               # FastAPI entry point
-│   │   ├── config.py             # Pydantic Settings (env vars)
-│   │   ├── models/               # SQLAlchemy + GeoAlchemy2 models
-│   │   ├── schemas/              # Pydantic request/response schemas
-│   │   ├── api/                  # API route handlers
-│   │   ├── services/             # Business logic (analysis, PDF, validation)
-│   │   ├── templates/report/     # Jinja2 HTML templates for PDF
-│   │   └── static/               # Static assets (logo, etc.)
+│   │   ├── main.py               # Punto de entrada FastAPI
+│   │   ├── config.py             # Configuración Pydantic (variables de entorno)
+│   │   ├── database.py           # Conexión y sesión SQLAlchemy
+│   │   ├── models/               # Modelos SQLAlchemy + GeoAlchemy2
+│   │   ├── schemas/              # Schemas Pydantic request/response
+│   │   ├── api/                  # Handlers de rutas API
+│   │   ├── services/             # Lógica de negocio (análisis, PDF, validación)
+│   │   ├── templates/report/     # Plantillas HTML Jinja2 para PDF
+│   │   └── static/               # Recursos estáticos (logo, etc.)
 │   ├── scripts/
-│   │   ├── update_layers.py      # Monthly environmental layer update cron
-│   │   ├── init_db.sql           # DB initialization SQL (PostGIS + tables)
-│   │   ├── entrypoint.sh         # Container entrypoint (cron + uvicorn)
-│   │   └── crontab               # Cron schedule for layer updates
-│   └── tests/                    # Pytest test suite
-├── frontend/                     # React.js application
+│   │   ├── update_layers.py      # Cron mensual de actualización de capas
+│   │   ├── init_db.sql           # SQL de inicialización de BD (PostGIS + tablas)
+│   │   ├── entrypoint.sh         # Entrypoint del contenedor (cron + uvicorn)
+│   │   └── crontab               # Programación cron para actualización de capas
+│   └── tests/                    # Suite de tests con pytest
+├── frontend/                     # Aplicación React.js
 │   ├── package.json
 │   ├── public/
 │   └── src/
-│       ├── components/           # React components (MapViewer, ToolPanel, etc.)
-│       ├── services/             # API client, file parsers
-│       ├── utils/                # Validation helpers
+│       ├── components/           # Componentes React (MapViewer, ToolPanel, etc.)
+│       ├── services/             # Cliente API, parsers de archivos
+│       ├── utils/                # Validaciones
 │       ├── App.jsx
 │       └── index.js
 ├── nginx/
 │   └── conf.d/
-│       └── default.conf          # Nginx config (SSL + reverse proxy)
-├── certs/                        # SSL certificates (not versioned)
-├── data/                         # Downloaded shapefiles (not versioned)
-├── backups/                      # Database backups (not versioned)
-└── tmp/                          # Temporary files (not versioned)
+│       ├── default.conf.prod     # Config Nginx producción (SSL + proxy inverso)
+│       └── local-dev.conf        # Config Nginx desarrollo local (HTTP sin SSL)
+├── certs/                        # Certificados SSL (no versionado)
+├── data/                         # Shapefiles descargados (no versionado)
+├── backups/                      # Backups de base de datos (no versionado)
+└── tmp/                          # Archivos temporales (no versionado)
 ```
 
-## Quick Start
+## Inicio Rápido
 
-### Prerequisites
+### Requisitos
 
-| Tool | Minimum Version | Purpose |
+| Herramienta | Versión mínima | Propósito |
 |---|---|---|
-| **Docker** | 24.0+ | Container runtime |
-| **Docker Compose** | 2.20+ | Service orchestration |
-| **Node.js** | 18.x (LTS) | Frontend build (local dev) |
-| **Python** | 3.11+ | Backend development (local) |
-| **Git** | — | Version control |
+| **Docker** | 24.0+ | Ejecución de contenedores |
+| **Docker Compose** | 2.20+ | Orquestación de servicios |
+| **Node.js** | 18.x (LTS) | Build del frontend |
+| **Python** | 3.11+ | Desarrollo backend local |
+| **Git** | — | Control de versiones |
 
-### 1. Clone the Repository
+### 1. Clonar el Repositorio
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/danizd/geoviable.git
 cd geoviable
 ```
 
-### 2. Configure Environment Variables
+### 2. Configurar Variables de Entorno
 
-Copy the template and customize it:
+Copiar la plantilla y personalizar:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your preferred editor. Key variables:
+Editar `.env` con tu editor preferido. Variables clave:
 
-| Variable | Description | Development Default |
+| Variable | Descripción | Valor por defecto |
 |---|---|---|
-| `POSTGRES_DB` | Database name | `geoviable` |
-| `POSTGRES_USER` | Database user | `geoviable` |
-| `POSTGRES_PASSWORD` | Database password | `geoviable_dev_2026!` |
-| `DATABASE_URL` | SQLAlchemy connection string | `postgresql+psycopg2://geoviable:geoviable_dev_2026!@geoviable-db:5432/geoviable` |
-| `ENVIRONMENT` | Runtime mode | `development` |
-| `LOG_LEVEL` | Logging verbosity | `DEBUG` |
-| `CORS_ORIGINS` | Allowed origins | `http://localhost:3000,http://localhost:5173` |
+| `POSTGRES_DB` | Nombre de la base de datos | `geoviable` |
+| `POSTGRES_USER` | Usuario de la base de datos | `geoviable` |
+| `POSTGRES_PASSWORD` | Contraseña de la base de datos | `geoviable_dev_2026!` |
+| `DATABASE_URL` | Cadena de conexión SQLAlchemy | `postgresql+psycopg2://geoviable:geoviable_dev_2026!@geoviable-db:5432/geoviable` |
+| `ENVIRONMENT` | Modo de ejecución | `development` |
+| `LOG_LEVEL` | Nivel de logging | `debug` |
+| `CORS_ORIGINS` | Orígenes permitidos | `http://localhost:3000,http://localhost:5173` |
 
-> **Production:** Generate a strong password with `openssl rand -base64 32` and set `CORS_ORIGINS=https://geoviable.movilab.es`.
+> **Producción:** Genera una contraseña segura con `openssl rand -base64 32` y configura `CORS_ORIGINS=https://geoviable.movilab.es`.
 
-### 3. First-Time Setup (Docker Compose)
+### 3. Configuración Inicial
 
 ```bash
-# Build the frontend
+# Construir el frontend
 cd frontend && npm install && npm run build && cd ..
 
-# Start all services
+# Iniciar todos los servicios
 docker compose up -d --build
 
-# Check service health
+# Verificar estado de los servicios
 docker compose ps
-
-# View logs
-docker compose logs -f geoviable-api
 ```
 
-### 4. Verify the Installation
+### 4. Verificar la Instalación
 
-Once all containers are running:
+Cuando todos los contenedores están corriendo:
 
-| Service | URL | Description |
+| Servicio | URL | Descripción |
 |---|---|---|
-| **Frontend** | http://localhost:80 | React app (served by Nginx) |
-| **API Docs** | http://localhost:80/api/v1/docs | FastAPI Swagger UI |
-| **Health Check** | http://localhost:80/api/v1/health | Service status |
+| **Frontend** | http://localhost | Aplicación React (servida por Nginx) |
+| **API Docs** | http://localhost/api/v1/docs | Swagger UI de FastAPI |
+| **Health Check** | http://localhost/api/v1/health | Estado del servicio |
 
-### 5. Load Initial Environmental Data
+### 5. Cargar Datos Ambientales Iniciales
 
-On first run, the database has no environmental layers. You must load them:
+Al ejecutar por primera vez, la base de datos no tiene capas ambientales. Debes cargarlas:
 
 ```bash
-# Option A: Automated (requires internet + MITECO/CNIG availability)
+# Opción A: Automatizada (requiere internet + disponibilidad MITECO/CNIG)
 docker compose exec geoviable-api python -m scripts.update_layers
 
-# Option B: Manual (recommended for first setup)
-# 1. Download shapefiles manually from MITECO/CNIG (see specs/Fuentes_de_datos.md)
-# 2. Place them in the data/ directory
-# 3. Run the initialization script
-docker compose exec geoviable-api python -m scripts.load_initial_data
+# Opción B: Manual (recomendado para la primera vez)
+# 1. Descargar shapefiles manualmente de MITECO/CNIG (ver specs/Fuentes_de_datos.md)
+# 2. Colocarlos en el directorio data/
+# 3. Ejecutar el script de carga
 ```
 
-## Development
+## Desarrollo
 
-### Backend (FastAPI) — Local Dev
+### Backend (FastAPI) — Desarrollo Local
 
 ```bash
-# Create virtual environment
+# Crear entorno virtual
 cd backend
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # En Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Instalar dependencias
 pip install -r requirements.txt
 
-# Start development server (hot reload)
+# Iniciar servidor de desarrollo (hot reload)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-API docs will be at: http://localhost:8000/docs
+Documentación API en: http://localhost:8000/docs
 
-### Frontend (React) — Local Dev
+### Frontend (React) — Desarrollo Local
 
 ```bash
 cd frontend
 npm install
-npm start  # or npm run dev
+npm start
 ```
 
-App will be at: http://localhost:3000 (or 5173 if using Vite)
+La aplicación estará en: http://localhost:3000
 
-### Running Tests
+### Ejecutar Tests
 
 ```bash
-# Backend tests
+# Tests del backend
 cd backend
 pytest -v
 
-# Frontend tests
+# Tests del frontend
 cd frontend
 npm test
 ```
 
-## Useful Docker Commands
+## Comandos Útiles de Docker
 
 ```bash
-# View all running services
+# Ver servicios en ejecución
 docker compose ps
 
-# Follow all logs
+# Seguir logs en tiempo real
 docker compose logs -f
 
-# Access the database
+# Acceder a la base de datos
 docker compose exec geoviable-db psql -U geoviable -d geoviable
 
-# Execute spatial queries manually
+# Ejecutar consultas espaciales
 docker compose exec geoviable-db psql -U geoviable -d geoviable -c "SELECT COUNT(*) FROM red_natura_2000;"
 
-# Run layer update manually
+# Actualizar capas manualmente
 docker compose exec geoviable-api python -m scripts.update_layers
 
-# Database backup
+# Backup de la base de datos
 docker compose exec geoviable-db pg_dump -U geoviable geoviable | gzip > backups/backup_$(date +%Y%m%d).sql.gz
 
-# Database restore
+# Restaurar base de datos
 gunzip -c backups/backup_20260401.sql.gz | docker compose exec -T geoviable-db psql -U geoviable -d geoviable
 
-# Rebuild a single service
+# Reconstruir un servicio individual
 docker compose up -d --build geoviable-api
 
-# Full reset (destroys data!)
+# Reset completo (¡destruye datos!)
 docker compose down -v
 ```
 
-## Database Connection Details
+## Detalles de la Base de Datos
 
-| Parameter | Value |
+| Parámetro | Valor |
 |---|---|
-| **Host (internal)** | `geoviable-db` (Docker network) |
-| **Host (external)** | Not exposed to host in production |
-| **Port** | 5432 |
-| **Database** | `geoviable` |
-| **User** | `geoviable` |
-| **Password** | As defined in `.env` |
-| **PostGIS Version** | 3.4+ |
-| **Storage CRS** | ETRS89 / UTM zone 30N (EPSG:25830) |
+| **Host (interno)** | `geoviable-db` (red Docker) |
+| **Puerto** | 5432 |
+| **Base de datos** | `geoviable` |
+| **Usuario** | `geoviable` |
+| **Contraseña** | La definida en `.env` |
+| **Versión PostGIS** | 3.4+ |
+| **CRS de almacenamiento** | ETRS89 / UTM zona 30N (EPSG:25830) |
 
-### Connecting from Host (Development Only)
+### Conectar desde el Host (Solo Desarrollo)
 
-If you need to connect to PostgreSQL from your host machine during development, add this to `docker-compose.yml` under the `geoviable-db` service:
+Si necesitas conectar PostgreSQL desde tu máquina local durante el desarrollo, añade esto en `docker-compose.yml` bajo el servicio `geoviable-db`:
 
 ```yaml
 ports:
-  - "5432:5432"  # Only for local development
+  - "5432:5432"  # Solo desarrollo local
 ```
 
-Then connect with:
+Luego conecta con:
 ```bash
 psql -h localhost -U geoviable -d geoviable
 ```
 
-Or with a GUI client like pgAdmin / DBeaver using:
+O con un cliente GUI como pgAdmin / DBeaver:
 - Host: `localhost`
-- Port: `5432`
-- Database: `geoviable`
-- User: `geoviable`
-- Password: (from `.env`)
+- Puerto: `5432`
+- Base de datos: `geoviable`
+- Usuario: `geoviable`
+- Contraseña: (la de `.env`)
 
-## Architecture Overview
+## Arquitectura
 
 ```
 Internet → Cloudflare (DNS + proxy) → Oracle Cloud VM :443
-  → Nginx (SSL termination + reverse proxy)
+  → Nginx (terminación SSL + proxy inverso)
     → /api/*  → geoviable-api:8000 (FastAPI)
-    → /*      → React static files (Nginx)
+    → /*      → Archivos estáticos React (Nginx)
 
 FastAPI ↔ geoviable-db:5432 (PostgreSQL + PostGIS)
-Cron Job → update_layers.py → monthly layer refresh
+Cron Job → update_layers.py → actualización mensual de capas
 ```
 
-## Environmental Layers
+## Capas Ambientales
 
-| # | Layer | Source | Update Frequency |
+| # | Capa | Fuente | Frecuencia de actualización |
 |---|---|---|---|
-| 1 | Red Natura 2000 (ZEPA + LIC/ZEC) | MITECO | Annual |
-| 2 | Flood Zones (SNCZI, T100+T500) | MITECO | Irregular |
-| 3 | Hydraulic Public Domain (DPH) | MITECO | Irregular |
-| 4 | Livestock Routes (Vías Pecuarias) | CNIG | Annual |
-| 5 | Protected Natural Spaces (ENP) | MITECO | Annual |
-| 6 | Surface Water Masses | MITECO | 6-year PHC cycle |
-| 7 | Groundwater Masses | MITECO | 6-year PHC cycle |
+| 1 | Red Natura 2000 (ZEPA + LIC/ZEC) | MITECO | Anual |
+| 2 | Zonas inundables (SNCZI, T100+T500) | MITECO | Irregular |
+| 3 | Dominio Público Hidráulico (DPH) | MITECO | Irregular |
+| 4 | Vías pecuarias | CNIG | Anual |
+| 5 | Espacios Naturales Protegidos (ENP) | MITECO | Anual |
+| 6 | Masas de agua superficiales | MITECO | Ciclo PHC 6 años |
+| 7 | Masas de agua subterráneas | MITECO | Ciclo PHC 6 años |
 
-All layers are stored in EPSG:25830 (ETRS89 / UTM 30N). User polygons arrive in EPSG:4326 (WGS84) and are reprojected server-side via `ST_Transform`.
+Todas las capas se almacenan en EPSG:25830 (ETRS89 / UTM 30N). Los polígonos del usuario llegan en EPSG:4326 (WGS84) y se reproyectan en el servidor con `ST_Transform`.
 
-## API Endpoints
+## Endpoints de la API
 
-| Method | Endpoint | Description |
+| Método | Endpoint | Descripción |
 |---|---|---|
-| `POST` | `/api/v1/analyze` | Spatial analysis → JSON response (dev utility) |
-| `POST` | `/api/v1/report/generate` | Spatial analysis → PDF report (production endpoint) |
-| `GET` | `/api/v1/layers/status` | Check layer update status |
+| `POST` | `/api/v1/analyze` | Análisis espacial → respuesta JSON (utilidad dev) |
+| `POST` | `/api/v1/report/generate` | Análisis espacial → informe PDF (endpoint producción) |
+| `GET` | `/api/v1/layers/status` | Estado de actualización de capas |
 | `GET` | `/api/v1/health` | Health check |
 
-Full API reference: [specs/API_reference.md](specs/API_reference.md)
+Referencia completa de la API: [specs/API_reference.md](specs/API_reference.md)
 
-## Operational Limits (MVP)
+## Límites Operativos (MVP)
 
-| Parameter | Limit |
+| Parámetro | Límite |
 |---|---|
-| Maximum polygon area | 10,000 ha (100 km²) |
-| Maximum vertices | 10,000 |
-| Maximum upload size | 5 MB |
-| Polygons per request | 1 (single polygon only) |
-| Analysis timeout | 30 seconds |
+| Área máxima del polígono | 10.000 ha (100 km²) |
+| Vértices máximos | 10.000 |
+| Tamaño máximo de subida | 5 MB |
+| Polígonos por solicitud | 1 (solo un polígono) |
+| Timeout de análisis | 30 segundos |
 
-## Deployment to Production
+## Despliegue en Producción
 
-See [specs/DevOps_y_despliegue.md](specs/DevOps_y_despliegue.md) for full deployment instructions.
+Ver [specs/DevOps_y_despliegue.md](specs/DevOps_y_despliegue.md) para instrucciones completas.
 
-Summary:
+Resumen:
 
 ```bash
-# 1. Clone on OCI server
-git clone <repo-url> && cd geoviable
+# 1. Clonar en servidor OCI
+git clone https://github.com/danizd/geoviable.git && cd geoviable
 
-# 2. Configure production .env
+# 2. Configurar .env de producción
 cp .env.example .env
-nano .env  # Set production values
+nano .env  # Valores de producción
 
-# 3. Build frontend
+# 3. Construir frontend
 cd frontend && npm install && npm run build && cd ..
 
-# 4. Deploy
+# 4. Desplegar
 docker compose up -d --build
 
-# 5. Verify
+# 5. Verificar
 docker compose ps
 docker compose logs -f geoviable-api
 ```
 
-## License
+## Notas de Desarrollo Local
 
-Internal use only — GeoViable / movilab.es
+### Problemas de red al hacer pull de imágenes
+
+Si Docker no puede acceder a Docker Hub (timeout de red), las imágenes se obtienen automáticamente de **AWS ECR Public** (`public.ecr.aws/docker/library/`), que es un mirror configurado en `docker-compose.yml` y `backend/Dockerfile`.
+
+### Nginx local (sin SSL)
+
+En desarrollo local, Nginx usa la configuración `nginx/conf.d/local-dev.conf` que **no requiere certificados SSL**. El archivo de producción (`default.conf.prod`) se ignora en local.
+
+### Frontend
+
+El frontend debe construirse antes de iniciar los servicios. Si modificas el código React:
+
+```bash
+cd frontend && npm run build
+```
+
+Los cambios se reflejan automáticamente porque `frontend/build/` está montado como volumen en Nginx.
+
+## Licencia
+
+Uso interno — GeoViable / movilab.es
