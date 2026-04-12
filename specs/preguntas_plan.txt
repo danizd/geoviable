@@ -1,0 +1,75 @@
+Nombre del producto: GeoViable
+
+Usuarios objetivo del MVP: 
+En esta primera fase lo usarán solo personas de tu equipo/empresa, 
+
+Monetización futura: 
+solo es uso interno
+
+Datos y capas ambientales
+Fuentes concretas por capa: 
+
+Aquí tienes las rutas exactas para cada una de las capas de tu MVP:
+
+Descarga de la Red Natura 2000 (ZEPA y LIC/ZEC)
+Esta capa es nacional y agrupa tanto los Lugares de Importancia Comunitaria (LIC/ZEC) como las Zonas de Especial Protección para las Aves (ZEPA).
+
+URL exacta MITECO: https://www.miteco.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/informacion-disponible/rednatura_2000_desc.html
+
+Descarga de zonas inundables (SNCZI) y DPH
+Para evaluar riesgos de inundación, MITECO divide las descargas por "Periodos de Retorno" (T=10, T=50, T=100 y T=500 años). Para tu herramienta, descargar los polígonos de probabilidad media y baja (T=100 y T=500) es lo más útil.
+
+URL exacta MITECO (Zonas inundables): https://www.miteco.gob.es/es/cartografia-y-sig/ide/descargas/agua/descargas_agua_snczi.html
+
+URL exacta MITECO (Dominio público hidráulico cartografiado): https://www.miteco.gob.es/es/cartografia-y-sig/ide/descargas/agua/dph-y-zonas-asociadas.html
+
+Descarga de vías pecuarias
+Aunque el MITECO gestiona algunas capas generales, las vías pecuarias se han traspasado recientemente al Centro Nacional de Información Geográfica (CNIG), que ofrece la base de datos más limpia y en varios formatos (incluido SHP).
+
+URL exacta CNIG: https://centrodedescargas.cnig.es/CentroDescargas/ (En el buscador, debes navegar a la sección "Rutas, ocio y tiempo libre" para descargar la capa nacional o filtrar por Galicia).
+
+Descarga de los Espacios Naturales Protegidos (ENP)
+Esta capa incluye la red autonómica y nacional (parques naturales, reservas, monumentos naturales, etc.) que no pertenecen estrictamente a la Red Natura 2000, pero que tienen restricciones severas.
+
+URL exacta MITECO: https://www.miteco.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/informacion-disponible/enp_descargas.html
+
+Descarga de masas de agua (superficiales y subterráneas)
+Debes utilizar la cartografía actualizada correspondiente a los Planes Hidrológicos de Cuenca (PHC) del ciclo vigente (actualmente 2022-2027).
+
+URL exacta MITECO: https://www.miteco.gob.es/es/cartografia-y-sig/ide/descargas/agua/masas-de-agua-phc-2022-2027.html
+
+Recomendación técnica para el web scraping
+Dado que las páginas de MITECO requieren hacer clics en botones de "Descarga", para automatizar esto en tu backend de Python (FastAPI/Cron) te sugiero utilizar librerías como BeautifulSoup junto con Requests, o bien Selenium / Playwright en modo headless si las páginas ejecutan JavaScript para generar la descarga. Estas herramientas buscarán la etiqueta <a href=".../archivo.zip"> dentro de esas URLs cada mes, lo descargarán, y lo pasarán a tu base de datos PostGIS.
+
+
+
+Capas adicionales: 
+De momento no
+
+
+Informe PDF
+Estructura del informe: Me parece bien tu propuesta
+
+Marco legal por afección: ¿Quieres que el informe incluya referencias a legislación específica (Ley 42/2007 de Patrimonio Natural, Ley de Aguas, etc.)? ¿Tienes estas referencias compiladas?
+De momento no
+
+Branding del PDF: El PDF lleva logo, marca, colores corporativos genéricos en el MVP
+
+Técnico
+Mapa estático en el PDF: 
+Generamos la imagen del mapa en el backend con Python (contextily + matplotlib) 
+
+Autenticación en el MVP: 
+La API queda completamente abierta de momento
+
+Límites de polígono: 
+pon el limite que consideres mas optimos por utilidad y rendimiento
+
+Múltiples polígonos: 
+Si un usuario sube un archivo con varios polígonos  se rechaza
+
+Servidor Oracle: 
+Es una instancia Oracle Cloud (Always Free ARM) de  24GB de RAM y 200 GB de almacenamiento en bloque.
+
+Dominio y HTTPS: 
+mi dominio es https://movilab.es/ y la aplicacion ira en https://geoviable.movilab.es/

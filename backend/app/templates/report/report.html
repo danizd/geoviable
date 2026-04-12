@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe de Viabilidad Ambiental — {{ project_name }}</title>
+    <style>
+        /* ====================================================================
+           GeoViable — PDF Report Styles (WeasyPrint-compatible)
+           ====================================================================
+           WeasyPrint supports a subset of CSS. Avoid flexbox/grid.
+           Use tables, floats, and block-level elements for layout.
+           ==================================================================== */
+
+        /* ── Page setup ── */
+        @page {
+            size: A4 portrait;
+            margin: 20mm 15mm 20mm 15mm;
+
+            @bottom-center {
+                content: "Generado por GeoViable — geoviable.movilab.es — {{ footer_date }}";
+                font-size: 7pt;
+                color: #888;
+            }
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 7pt;
+                color: #888;
+            }
+        }
+
+        /* ── Typography ── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #1a1a1a;
+        }
+
+        h1 {
+            font-size: 22pt;
+            color: #1E3A5F;
+            margin-bottom: 8mm;
+        }
+
+        h2 {
+            font-size: 14pt;
+            color: #1E3A5F;
+            margin-bottom: 4mm;
+            padding-bottom: 2mm;
+            border-bottom: 1px solid #ddd;
+        }
+
+        h3 {
+            font-size: 11pt;
+            color: #2D8C4E;
+            margin-bottom: 2mm;
+        }
+
+        /* ── Cover page ── */
+        .cover {
+            page-break-after: always;
+            padding-top: 15mm;
+        }
+
+        .cover .logo {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #1E3A5F;
+            margin-bottom: 20mm;
+        }
+
+        .cover .title-block {
+            margin-bottom: 12mm;
+        }
+
+        .cover .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8mm;
+        }
+
+        .cover .meta-table td {
+            padding: 2mm 0;
+            vertical-align: top;
+        }
+
+        .cover .meta-table td:first-child {
+            width: 35mm;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .cover .divider {
+            border: none;
+            border-top: 2px solid #1E3A5F;
+            margin: 6mm 0;
+        }
+
+        .cover .disclaimer-box {
+            background-color: #FFF3E0;
+            border-left: 4px solid #E67E22;
+            padding: 4mm;
+            font-size: 8.5pt;
+            color: #555;
+            margin-top: 10mm;
+        }
+
+        /* ── Map section ── */
+        .map-section {
+            page-break-after: always;
+        }
+
+        .map-image {
+            width: 100%;
+            margin-bottom: 4mm;
+        }
+
+        .map-legend {
+            margin-top: 3mm;
+        }
+
+        .map-legend .legend-item {
+            display: inline-block;
+            margin-right: 4mm;
+            margin-bottom: 2mm;
+            font-size: 8.5pt;
+        }
+
+        .map-legend .color-box {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            vertical-align: middle;
+            margin-right: 2px;
+            border: 1px solid #ccc;
+        }
+
+        /* ── Summary section ── */
+        .summary-section {
+            page-break-after: always;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 2mm 6mm;
+            border-radius: 3mm;
+            color: #fff;
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 4mm;
+        }
+
+        .summary-stats {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6mm;
+        }
+
+        .summary-stats td {
+            padding: 2mm 4mm;
+            border: 1px solid #eee;
+        }
+
+        .summary-stats td:first-child {
+            font-weight: bold;
+            width: 50mm;
+            background: #f9f9f9;
+        }
+
+        /* ── Summary table (all layers) ── */
+        .layer-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6mm;
+        }
+
+        .layer-table th {
+            background: #1E3A5F;
+            color: #fff;
+            padding: 2mm 3mm;
+            text-align: left;
+            font-size: 9pt;
+        }
+
+        .layer-table td {
+            padding: 2mm 3mm;
+            border-bottom: 1px solid #eee;
+            font-size: 9pt;
+        }
+
+        .layer-table tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .status-yes {
+            color: #DC2626;
+            font-weight: bold;
+        }
+
+        .status-no {
+            color: #999;
+        }
+
+        /* ── Detail sections ── */
+        .detail-section {
+            margin-bottom: 6mm;
+        }
+
+        .detail-grid {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .detail-grid td {
+            padding: 2mm 0;
+            vertical-align: top;
+        }
+
+        .detail-grid td:first-child {
+            width: 40mm;
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* ── Disclaimer / final page ── */
+        .disclaimer-page {
+            page-break-before: always;
+        }
+
+        .disclaimer-page ol {
+            padding-left: 6mm;
+            font-size: 9pt;
+            color: #555;
+        }
+
+        .disclaimer-page ol li {
+            margin-bottom: 3mm;
+        }
+
+        .footer-branding {
+            margin-top: 10mm;
+            padding-top: 4mm;
+            border-top: 1px solid #ddd;
+            font-size: 8pt;
+            color: #888;
+        }
+
+        /* ── Utility ── */
+        .text-muted {
+            color: #888;
+        }
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ====================================================================
+     PAGE 1: Cover
+     ==================================================================== -->
+<div class="cover">
+    <div class="logo">GeoViable</div>
+
+    <h1>INFORME DE VIABILIDAD<br>AMBIENTAL</h1>
+
+    <hr class="divider">
+
+    <table class="meta-table">
+        <tr><td>Proyecto:</td><td>{{ project_name }}</td></tr>
+        <tr><td>Autor:</td><td>{{ project_author }}</td></tr>
+        <tr><td>Descripción:</td><td>{{ project_description }}</td></tr>
+        <tr><td>Fecha:</td><td>{{ report_date }}</td></tr>
+        <tr><td>Referencia:</td><td>{{ report_reference }}</td></tr>
+    </table>
+
+    <hr class="divider">
+
+    <table class="meta-table">
+        <tr><td>Centroide:</td><td>{{ parcel_centroid_lat }}°N, {{ parcel_centroid_lon }}°W</td></tr>
+        <tr><td>Superficie:</td><td>{{ parcel_area_ha }} ha ({{ parcel_area_m2 }} m²)</td></tr>
+    </table>
+
+    <hr class="divider">
+
+    <div class="disclaimer-box">
+        <strong>AVISO:</strong> Este informe tiene carácter orientativo y no sustituye
+        un estudio de impacto ambiental oficial.
+    </div>
+</div>
+
+<!-- ====================================================================
+     PAGE 2: Map
+     ==================================================================== -->
+<div class="map-section">
+    <h2>MAPA DE SITUACIÓN</h2>
+
+    <img
+        class="map-image"
+        src="data:image/png;base64,{{ map_image_base64 }}"
+        alt="Mapa de situación de la parcela analizada"
+    />
+
+    <div class="map-legend">
+        <div class="legend-item">
+            <span class="color-box" style="background:#2563EB;"></span> Parcela analizada
+        </div>
+        {% for layer in affected_layers %}
+        <div class="legend-item">
+            <span class="color-box" style="background:{{ layer._color | default('#888888') }};"></span>
+            {{ layer.display_name }}
+        </div>
+        {% endfor %}
+    </div>
+
+    <p class="text-muted" style="margin-top:4mm; font-size:8pt;">
+        Fuente cartográfica: OpenStreetMap — Sistema de coordenadas: ETRS89/UTM 30N (EPSG:25830)
+    </p>
+</div>
+
+<!-- ====================================================================
+     PAGE 3: Executive Summary
+     ==================================================================== -->
+<div class="summary-section">
+    <h2>RESUMEN EJECUTIVO</h2>
+
+    <p style="margin-bottom:4mm;">
+        Nivel de riesgo ambiental:
+        <span class="risk-badge" style="background-color:{{ risk_color }};">
+            {{ overall_risk | upper }}
+        </span>
+    </p>
+
+    <table class="summary-stats">
+        <tr><td>Capas analizadas</td><td>{{ total_layers }}</td></tr>
+        <tr><td>Capas con afección</td><td>{{ layers_affected }}</td></tr>
+        <tr><td>Capas sin afección</td><td>{{ layers_unaffected }}</td></tr>
+        <tr><td>Tiempo de análisis</td><td>{{ analysis_duration_ms }} ms</td></tr>
+    </table>
+
+    <h3>TABLA RESUMEN</h3>
+    <table class="layer-table">
+        <thead>
+            <tr>
+                <th>Capa</th>
+                <th>Afección</th>
+                <th>Solape máx.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for layer in affected_layers %}
+            <tr>
+                <td>{{ layer.display_name }}</td>
+                <td class="status-yes">✅ Sí</td>
+                <td>
+                    {% set max_overlap = namespace(value=0) %}
+                    {% for f in layer.features %}
+                        {% if f.porcentaje_solape and f.porcentaje_solape > max_overlap.value %}
+                            {% set max_overlap.value = f.porcentaje_solape %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ "%.2f" | format(max_overlap.value) }}%
+                </td>
+            </tr>
+            {% endfor %}
+            {% for layer in unaffected_layers %}
+            <tr>
+                <td>{{ layer.display_name }}</td>
+                <td class="status-no">❌ No</td>
+                <td class="text-muted">—</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- ====================================================================
+     PAGES 4+: Detail per affected layer
+     ==================================================================== -->
+{% for layer in affected_layers %}
+<div class="detail-section">
+    <h2>DETALLE: {{ layer.display_name }}</h2>
+
+    {% for feature in layer.features %}
+    <table class="detail-grid">
+        {% if feature.nombre %}
+        <tr><td>Entidad afectada:</td><td>{{ feature.nombre }}</td></tr>
+        {% endif %}
+        {% if feature.codigo %}
+        <tr><td>Código:</td><td>{{ feature.codigo }}</td></tr>
+        {% endif %}
+        {% if feature.tipo %}
+        <tr><td>Tipo:</td><td>{{ feature.tipo }}</td></tr>
+        {% endif %}
+        {% if feature.categoria %}
+        <tr><td>Categoría:</td><td>{{ feature.categoria }}</td></tr>
+        {% endif %}
+        {% if feature.periodo_retorno %}
+        <tr><td>Periodo de retorno:</td><td>{{ feature.periodo_retorno }}</td></tr>
+        {% endif %}
+        {% if feature.area_interseccion_m2 %}
+        <tr>
+            <td>Superficie de intersección:</td>
+            <td>{{ "%.2f" | format(feature.area_interseccion_m2) }} m²</td>
+        </tr>
+        {% endif %}
+        {% if feature.porcentaje_solape %}
+        <tr>
+            <td>Porcentaje de solape:</td>
+            <td>{{ "%.2f" | format(feature.porcentaje_solape) }}%</td>
+        </tr>
+        {% endif %}
+        {% if feature.longitud_afectada_m %}
+        <tr>
+            <td>Longitud afectada:</td>
+            <td>{{ "%.2f" | format(feature.longitud_afectada_m) }} m</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    {% if not loop.last %}
+    <hr style="border:none; border-top:1px dashed #ddd; margin:4mm 0;">
+    {% endif %}
+    {% endfor %}
+</div>
+{% endfor %}
+
+<!-- ====================================================================
+     FINAL PAGE: Disclaimers
+     ==================================================================== -->
+<div class="disclaimer-page">
+    <h2>NOTAS Y CONDICIONES</h2>
+
+    <ol>
+        <li>
+            Este informe se genera de forma automática a partir de datos públicos
+            obtenidos de MITECO y CNIG.
+        </li>
+        <li>
+            Los datos se actualizan mensualmente. Última actualización disponible:
+            <strong>{{ data_updated_at }}</strong>.
+        </li>
+        <li>
+            Este documento tiene carácter <strong>ORIENTATIVO</strong> y <strong>NO</strong>
+            sustituye:
+            <ul style="margin-top:1mm; margin-left:4mm;">
+                <li>Un Estudio de Impacto Ambiental.</li>
+                <li>La consulta previa al órgano ambiental competente.</li>
+                <li>El informe de compatibilidad urbanística del ayuntamiento.</li>
+            </ul>
+        </li>
+        <li>
+            La precisión de los resultados depende de la calidad de los datos
+            geográficos oficiales disponibles.
+        </li>
+    </ol>
+
+    <div class="footer-branding">
+        <strong>GeoViable</strong> v1.0 — geoviable.movilab.es<br>
+        Generado el {{ footer_date }}
+    </div>
+</div>
+
+</body>
+</html>

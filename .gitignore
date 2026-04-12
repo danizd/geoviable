@@ -1,0 +1,59 @@
+# Secretos y configuración local
+.env
+*.pem
+*.key
+
+# Datos geoespaciales descargados
+data/
+*.shp
+*.dbf
+*.shx
+*.prj
+*.cpg
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+pip-selfcheck.json
+
+# Node / Frontend
+node_modules/
+frontend/build/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Backups de BD
+backups/
+*.sql
+*.sql.gz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# WeasyPrint / PDF generación temporal
+tmp/
+*.tmp
+
+# Playwright
+.cache/

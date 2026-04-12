@@ -1,0 +1,1 @@
+# GeoViable — Pydantic Schemas

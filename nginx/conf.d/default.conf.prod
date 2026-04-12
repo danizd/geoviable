@@ -1,0 +1,85 @@
+# ==============================================================================
+# GeoViable — Nginx Configuration
+# ==============================================================================
+# Acts as:
+#   1. Reverse proxy for the FastAPI backend (/api/*)
+#   2. Static file server for the React frontend build (/*)
+#   3. HTTP → HTTPS redirect (production)
+#   4. Security headers (HSTS, X-Content-Type-Options, etc.)
+#
+# In development, SSL is not used — the HTTP server serves everything.
+# ==============================================================================
+
+# ── HTTP → HTTPS redirect (production) ──
+# In development, comment out this block and use only the HTTPS server.
+server {
+    listen 80;
+    server_name geoviable.movilab.es;
+
+    # Redirect all HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+# ── HTTPS server (production) ──
+server {
+    listen 443 ssl http2;
+    server_name geoviable.movilab.es;
+
+    # ── SSL certificates (Let's Encrypt) ──
+    ssl_certificate     /etc/letsencrypt/live/geoviable.movilab.es/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/geoviable.movilab.es/privkey.pem;
+
+    # ── Security headers ──
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # ── Frontend (React static build) ──
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;  # SPA routing
+    }
+
+    # ── API Backend (reverse proxy to FastAPI) ──
+    location /api/ {
+        proxy_pass http://geoviable-api:8000;
+
+        # Preserve original request headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeout for PDF generation (can take up to 60s)
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 10s;
+
+        # Payload size limit (must match FastAPI middleware)
+        client_max_body_size 5M;
+    }
+}
+
+# ── Development server (no SSL) ──
+# Uncomment this block and comment out the HTTPS server above for local testing.
+# server {
+#     listen 80;
+#     server_name localhost;
+#
+#     # Frontend (React static build)
+#     location / {
+#         root /usr/share/nginx/html;
+#         try_files $uri $uri/ /index.html;
+#     }
+#
+#     # API Backend
+#     location /api/ {
+#         proxy_pass http://geoviable-api:8000;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#         proxy_read_timeout 60s;
+#         client_max_body_size 5M;
+#     }
+# }
