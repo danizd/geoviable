@@ -356,6 +356,150 @@ cd frontend && npm run build
 
 Los cambios se reflejan automáticamente porque `frontend/build/` está montado como volumen en Nginx.
 
+## Solución de Problemas Post-Despliegue
+
+Si después de ejecutar `docker compose up -d --build` algo no funciona, revisa esta lista en orden:
+
+### 1. El contenedor API se reinicia continuamente (estado `Restarting`)
+
+**Síntoma:** `docker compose ps` muestra `geoviable-api` en estado `Restarting` con exit code 255.
+
+**Causa probable:** Los scripts de entrada tienen saltos de línea Windows (CRLF) que rompen el shebang `#!/bin/bash` en Linux.
+
+```bash
+# Verificar logs del contenedor
+docker logs geoviable-api --tail 5
+# Si ves: "exec ./entrypoint.sh: no such file or directory" → es CRLF
+```
+
+**Solución:**
+```bash
+# En Windows (PowerShell):
+powershell -Command "(Get-Content -Raw backend\scripts\entrypoint.sh) -replace \"`r`n\",\"`n\" | Set-Content -NoNewline backend\scripts\entrypoint.sh"
+powershell -Command "(Get-Content -Raw backend\scripts\crontab) -replace \"`r`n\",\"`n\" | Set-Content -NoNewline backend\scripts\crontab"
+
+# Reconstruir el contenedor
+docker compose up -d --build geoviable-api
+```
+
+> **Prevención:** Añade un archivo `.gitattributes` con `*.sh text eol=lf` y `*.sh text eol=lf` al repositorio para que Git normalice los saltos de línea automáticamente.
+
+---
+
+### 2. Nginx devuelve "403 Forbidden" al acceder a http://localhost
+
+**Síntoma:** El navegador muestra un error 403 al abrir http://localhost.
+
+**Causa probable:** La carpeta `frontend/build/` está vacía — nunca se compiló la aplicación React.
+
+```bash
+# Verificar si hay archivos en el build
+dir frontend\build
+# Si está vacío → necesita compilación
+```
+
+**Solución:**
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+> **Nota:** Este paso debe ejecutarse **antes** del primer `docker compose up -d` y cada vez que modifiques el código frontend.
+
+---
+
+### 3. La API devuelve error 500 — `function st_geomfromgeojson does not exist`
+
+**Síntoma:** Al llamar a `/api/v1/report/generate` o `/api/v1/analyze`, la respuesta es 500 con el error mencionado.
+
+**Causa probable:** La extensión PostGIS no está instalada en la base de datos. Esto ocurre cuando el archivo `init_db.sql` no se ejecutó en la creación inicial del contenedor (porque era un directorio en lugar de un archivo, o porque el contenedor ya existía).
+
+**Solución:**
+```bash
+# Instalar PostGIS manualmente
+docker exec geoviable-db psql -U geoviable -d geoviable -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+# Crear las tablas (si el archivo init_db.sql existe y es correcto)
+docker exec -i geoviable-db psql -U geoviable -d geoviable < backend\scripts\init_db.sql
+
+# Si no existe init_db.sql, créalo a partir del esquema en specs/Esquema_base_datos.md
+```
+
+**Verificación:**
+```bash
+docker exec geoviable-db psql -U geoviable -d geoviable -c "\dt"
+# Deberías ver las 7 tablas de capas + layer_update_log
+```
+
+---
+
+### 4. El informe PDF aparece vacío (riesgo "NINGUNO", 0 capas con afección)
+
+**Síntoma:** El PDF se genera correctamente pero todas las capas muestran "No" en la columna de afección y "—" en solapamiento.
+
+**Causa probable:** Las tablas de capas están vacías (0 registros). Esto es **esperable en una instalación fresca** — los datos ambientales deben cargarse explícitamente.
+
+**Diagnóstico:**
+```bash
+docker exec geoviable-db psql -U geoviable -d geoviable -c "
+  SELECT 'red_natura_2000' AS tbl, count(*) FROM red_natura_2000
+  UNION ALL SELECT 'zonas_inundables', count(*) FROM zonas_inundables
+  UNION ALL SELECT 'dominio_publico_hidraulico', count(*) FROM dominio_publico_hidraulico
+  UNION ALL SELECT 'vias_pecuarias', count(*) FROM vias_pecuarias
+  UNION ALL SELECT 'espacios_naturales_protegidos', count(*) FROM espacios_naturales_protegidos
+  UNION ALL SELECT 'masas_agua_superficial', count(*) FROM masas_agua_superficial
+  UNION ALL SELECT 'masas_agua_subterranea', count(*) FROM masas_agua_subterranea;
+"
+```
+
+**Solución — Cargar datos reales (producción):**
+```bash
+# Ejecutar el script de actualización de capas (descarga desde MITECO/CNIG)
+docker compose exec geoviable-api python -m scripts.update_layers
+```
+
+**Solución — Cargar datos de muestra (desarrollo/testing):**
+```bash
+# Verificar que init_db.sql existe como archivo (no como directorio)
+dir backend\scripts\init_db.sql
+
+# Si la tabla es un directorio, eliminarla y crear el archivo correcto:
+rmdir /s /q backend\scripts\init_db.sql
+# Luego crear backend\scripts\init_db.sql con el DDL de specs/Esquema_base_datos.md
+```
+
+> **Cuidado con las coordenadas:** Si usas datos de muestra propios, asegúrate de que están en **EPSG:25830 (UTM zona 30N)**. Coordenadas en UTM zona 29N (X: ~680.000-730.000) no intersectarán con polígonos proyectados a zona 30N (X: ~20.000-60.000 para Galicia occidental).
+
+---
+
+### 5. Diagnóstico rápido completo
+
+Si no estás seguro de qué falla, ejecuta esta secuencia:
+
+```bash
+# 1. Estado de contenedores
+docker compose ps
+
+# 2. Logs del API (buscar errores)
+docker logs geoviable-api --tail 30
+
+# 3. Health check de la API
+curl http://localhost/api/v1/health
+
+# 4. Verificar PostGIS
+docker exec geoviable-db psql -U geoviable -d geoviable -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'postgis';"
+
+# 5. Verificar datos en tablas
+docker exec geoviable-db psql -U geoviable -d geoviable -c "SELECT COUNT(*) FROM red_natura_2000;"
+
+# 6. Probar el endpoint de análisis con un polígono de prueba
+curl -X POST http://localhost/api/v1/analyze ^
+  -H "Content-Type: application/json" ^
+  -d "{\"type\":\"Feature\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-8.65,42.95],[-8.55,42.95],[-8.55,43.02],[-8.65,43.02],[-8.65,42.95]]]},\"properties\":{}}"
+```
+
 ## Licencia
 
 Uso interno — GeoViable / movilab.es

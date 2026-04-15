@@ -101,13 +101,59 @@ function GeomanController({ onPolygonSet, onPolygonClear, onError }) {
       }
     });
 
-    // Expose on map instance for external access
+    // Expose draw control methods on map instance
     map._geomanDrawnLayerRef = drawnLayerRef;
+    map._geomanEnableDraw = () => map.pm.enableDraw('Polygon');
+    map._geomanDisableDraw = () => map.pm.disableDraw('Polygon');
+    map._geomanRemoveCurrentLayer = () => {
+      if (drawnLayerRef.current) {
+        map.pm.disableDraw('Polygon');
+        map.removeLayer(drawnLayerRef.current);
+        drawnLayerRef.current = null;
+      }
+    };
 
     geomanInitialized.current = true;
   }, [map, onPolygonSet, onPolygonClear, onError]);
 
   return null;
+}
+
+// ── Custom "✏️ Dibujar" button that sits over the map ──
+function DrawButton({ isDrawing, onToggle }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 10,
+        left: 60,
+        zIndex: 1000,
+        pointerEvents: 'auto',
+      }}
+    >
+      <button
+        onClick={onToggle}
+        style={{
+          padding: '8px 14px',
+          fontSize: 14,
+          fontWeight: 600,
+          border: isDrawing ? '2px solid var(--color-blue)' : '2px solid #fff',
+          borderRadius: 6,
+          background: isDrawing ? 'var(--color-blue)' : '#fff',
+          color: isDrawing ? '#fff' : 'var(--color-gray-700)',
+          cursor: 'pointer',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          transition: 'all 0.15s',
+        }}
+        title={isDrawing ? 'Cancelar dibujo' : 'Activar modo dibujo de polígono'}
+      >
+        ✏️ Dibujar
+      </button>
+    </div>
+  );
 }
 
 // ── Main MapViewer component ──
@@ -120,27 +166,93 @@ function MapViewer({ polygonGeoJSON, onPolygonSet, onPolygonClear, onError }) {
     mapRef.current = map;
   }, []);
 
-  // ── When polygonGeoJSON changes externally (file upload), draw it ──
+  // ── Listen to Geoman draw state changes to sync button ──
+  const [isDrawing, setIsDrawing] = useState(false);
+
   useEffect(() => {
-    if (!polygonGeoJSON || !mapRef.current) return;
+    const map = mapRef.current;
+    if (!map || !map.pm) return;
 
-    const drawnRef = mapRef.current._geomanDrawnLayerRef;
-    if (drawnRef?.current) {
-      mapRef.current.removeLayer(drawnRef.current);
+    const onDrawStart = () => setIsDrawing(true);
+    const onDrawEnd = () => setIsDrawing(false);
+    const onDrawCancel = () => setIsDrawing(false);
+
+    map.on('pm:drawstart', onDrawStart);
+    map.on('pm:drawend', onDrawEnd);
+    map.on('pm:drawcancel', onDrawCancel);
+
+    return () => {
+      map.off('pm:drawstart', onDrawStart);
+      map.off('pm:drawend', onDrawEnd);
+      map.off('pm:drawcancel', onDrawCancel);
+    };
+  }, [polygonGeoJSON]);
+
+  // ── Toggle drawing mode ──
+  const toggleDrawing = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !map.pm) return;
+
+    if (isDrawing) {
+      // Disable drawing
+      map.pm.disableDraw('Polygon');
+      setIsDrawing(false);
+    } else {
+      // If a polygon already exists, don't allow new drawing
+      if (map._geomanDrawnLayerRef?.current) {
+        onError('Ya existe un polígono. Bórralo antes de dibujar uno nuevo.');
+        return;
+      }
+      // Cancel any existing drawing before starting new
+      map.pm.disableDraw('Polygon');
+      map.pm.enableDraw('Polygon');
+      setIsDrawing(true);
     }
+  }, [isDrawing, onError]);
 
-    const geojsonLayer = L.geoJSON(polygonGeoJSON, {
-      style: () => POLYGON_STYLE,
-    });
+  // ── When drawing completes (polygonGeoJSON set), ensure drawing mode is off ──
+  useEffect(() => {
+    if (polygonGeoJSON && isDrawing) {
+      const map = mapRef.current;
+      if (map?.pm) map.pm.disableDraw('Polygon');
+      setIsDrawing(false);
+    }
+  }, [polygonGeoJSON]);
 
-    geojsonLayer.addTo(mapRef.current);
-    if (drawnRef) drawnRef.current = geojsonLayer.getLayers()[0];
+  // ── When polygonGeoJSON changes externally (file upload or deletion) ──
+  useEffect(() => {
+    if (!mapRef.current) return;
 
-    mapRef.current.fitBounds(geojsonLayer.getBounds(), { padding: [50, 50] });
+    const map = mapRef.current;
+
+    if (polygonGeoJSON) {
+      // Remove any existing Geoman layer first
+      if (map._geomanDrawnLayerRef?.current) {
+        map.removeLayer(map._geomanDrawnLayerRef.current);
+        map._geomanDrawnLayerRef.current = null;
+      }
+
+      // Add the external polygon (from file upload)
+      const geojsonLayer = L.geoJSON(polygonGeoJSON, {
+        style: () => POLYGON_STYLE,
+      });
+
+      geojsonLayer.addTo(map);
+      map._geomanDrawnLayerRef.current = geojsonLayer.getLayers()[0];
+      map.fitBounds(geojsonLayer.getBounds(), { padding: [50, 50] });
+    } else {
+      // polygonGeoJSON is null → remove the drawn layer from the map
+      map._geomanRemoveCurrentLayer?.();
+      // Also cancel any active drawing
+      if (isDrawing) {
+        map.pm.disableDraw('Polygon');
+        setIsDrawing(false);
+      }
+    }
   }, [polygonGeoJSON]);
 
   return (
-    <div className="map-viewer-container" style={{ width: '100%', height: '100%' }}>
+    <div className="map-viewer-container" style={{ width: '100%', height: '100%', position: 'relative' }}>
       <MapContainer
         center={GALICIA_CENTER}
         zoom={GALICIA_ZOOM}
@@ -168,6 +280,9 @@ function MapViewer({ polygonGeoJSON, onPolygonSet, onPolygonClear, onError }) {
           opacity={0}
         />
       </MapContainer>
+
+      {/* Custom draw toggle button */}
+      <DrawButton isDrawing={isDrawing} onToggle={toggleDrawing} />
     </div>
   );
 }

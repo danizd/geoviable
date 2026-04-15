@@ -26,210 +26,81 @@ print(f"Connecting to: {db_url}")
 
 engine = create_engine(db_url)
 
-# ── Galicia bounding box in EPSG:25830 (approximate) ──
-# Southwest: ~41.8N, -9.3W → UTM 25830: ~637000, 4630000
-# Northeast: ~43.8N, -6.7W → UTM 25830: ~870000, 4850000
-# Central point (Santiago): ~42.88N, -8.54W → UTM: ~705000, 4749000
+# ── Galicia bounding box in EPSG:25830 (UTM zone 30N) ──
+# Western Galicia (Ría de Arousa area): lon ~-8.6, lat ~42.98
+# → UTM 25830: X≈39000-48000, Y≈4770000-4778000
+# NOTE: Earlier versions used UTM zone 29N coordinates (~680000-730000)
+# which did NOT overlap with polygons projected to EPSG:25830.
 
 SAMPLE_QUERIES = [
     # ── 1. Red Natura 2000 (ZEPA + LIC/ZEC) ──
     """
-    INSERT INTO red_natura_2000 (nombre, tipo, codigo, geom)
+    INSERT INTO red_natura_2000 (codigo, nombre, tipo, superficie_ha, geom)
     VALUES
-    (
-        'Ría de Arousa',
-        'LIC',
-        'ES1140001',
-        ST_GeomFromText(
-            'POLYGON((680000 4720000, 720000 4720000, 720000 4740000, 680000 4740000, 680000 4720000))',
-            25830
-        )
-    ),
-    (
-        'Serra do Courel',
-        'ZEPA',
-        'ES1140002',
-        ST_GeomFromText(
-            'POLYGON((700000 4690000, 730000 4690000, 730000 4710000, 700000 4710000, 700000 4690000))',
-            25830
-        )
-    );
+    ('ES1140001', 'Ria de Arousa', 'LIC', 15000.0,
+        ST_GeomFromText('POLYGON((35000 4765000, 50000 4765000, 50000 4780000, 35000 4780000, 35000 4765000))', 25830)),
+    ('ES1140002', 'Serra do Barbanza', 'ZEPA', 8000.0,
+        ST_GeomFromText('POLYGON((30000 4760000, 45000 4760000, 45000 4775000, 30000 4775000, 30000 4760000))', 25830));
     """,
 
     # ── 2. Zonas Inundables (SNCZI) ──
     """
     INSERT INTO zonas_inundables (periodo_retorno, nivel_peligrosidad, demarcacion, geom)
     VALUES
-    (
-        'T100',
-        'Alto',
-        'Galicia-Costa',
-        ST_GeomFromText(
-            'POLYGON((690000 4740000, 710000 4740000, 710000 4750000, 690000 4750000, 690000 4740000))',
-            25830
-        )
-    ),
-    (
-        'T500',
-        'Medio',
-        'Miño-Sil',
-        ST_GeomFromText(
-            'POLYGON((660000 4680000, 690000 4680000, 690000 4700000, 660000 4700000, 660000 4680000))',
-            25830
-        )
-    );
+    ('T100', 'Alto', 'Galicia-Costa',
+        ST_GeomFromText('POLYGON((38000 4768000, 48000 4768000, 48000 4778000, 38000 4778000, 38000 4768000))', 25830)),
+    ('T500', 'Medio', 'Galicia-Costa',
+        ST_GeomFromText('POLYGON((36000 4766000, 52000 4766000, 52000 4782000, 36000 4782000, 36000 4766000))', 25830));
     """,
 
     # ── 3. Dominio Público Hidráulico ──
-    # Column expects MultiPolygon — we use ST_Multi to wrap the LineString
-    # Actually DPH may accept both, but if schema is strict, use polygon buffer
     """
     INSERT INTO dominio_publico_hidraulico (tipo, nombre_cauce, categoria, geom)
     VALUES
-    (
-        'Río',
-        'Río Ulla',
-        'Principal',
-        ST_Multi(
-            ST_Buffer(
-                ST_GeomFromText(
-                    'LINESTRING(680000 4745000, 690000 4748000, 700000 4750000, 710000 4752000)',
-                    25830
-                ),
-                50
-            )
-        )
-    ),
-    (
-        'Río',
-        'Río Miño',
-        'Principal',
-        ST_Multi(
-            ST_Buffer(
-                ST_GeomFromText(
-                    'LINESTRING(640000 4690000, 660000 4700000, 680000 4710000)',
-                    25830
-                ),
-                50
-            )
-        )
-    );
+    ('cauce', 'Rio Ulla', 'Principal',
+        ST_Multi(ST_Buffer(ST_GeomFromText('LINESTRING(30000 4775000, 40000 4772000, 50000 4769000)', 25830), 80))),
+    ('cauce', 'Rio Arnoya', 'Secundario',
+        ST_Multi(ST_Buffer(ST_GeomFromText('LINESTRING(35000 4765000, 45000 4770000, 55000 4775000)', 25830), 50)));
     """,
 
     # ── 4. Vías Pecuarias ──
     """
     INSERT INTO vias_pecuarias (nombre, tipo_via, anchura_legal_m, longitud_m, estado_deslinde, municipio, provincia, geom)
     VALUES
-    (
-        'Colada de Lemos',
-        'Colada',
-        20.0,
-        5000.0,
-        'Deslindada',
-        'Monforte de Lemos',
-        'Lugo',
-        ST_GeomFromText(
-            'LINESTRING(670000 4700000, 675000 4705000, 680000 4710000)',
-            25830
-        )
-    ),
-    (
-        'Cordel de Sarria',
-        'Cordel',
-        37.5,
-        8000.0,
-        'Sin deslindar',
-        'Sarria',
-        'Lugo',
-        ST_GeomFromText(
-            'LINESTRING(655000 4720000, 660000 4725000, 665000 4730000)',
-            25830
-        )
-    );
+    ('Colada de Vilagarcia', 'Colada', 20.0, 12000.0, 'Deslindada', 'Vilagarcia de Arousa', 'Pontevedra',
+        ST_GeomFromText('LINESTRING(32000 4778000, 42000 4774000, 52000 4770000)', 25830)),
+    ('Cordel de Cambados', 'Cordel', 37.5, 8000.0, 'Sin deslindar', 'Cambados', 'Pontevedra',
+        ST_GeomFromText('LINESTRING(28000 4768000, 38000 4772000, 48000 4776000)', 25830));
     """,
 
     # ── 5. Espacios Naturales Protegidos ──
     """
-    INSERT INTO espacios_naturales_protegidos (nombre, categoria, subcategoria, superficie_ha, geom)
+    INSERT INTO espacios_naturales_protegidos (codigo, nombre, categoria, subcategoria, superficie_ha, geom)
     VALUES
-    (
-        'Parque Nacional de las Islas Atlánticas',
-        'Parque Nacional',
-        'Marítimo-terrestre',
-        8480.0,
-        ST_GeomFromText(
-            'POLYGON((620000 4700000, 650000 4700000, 650000 4720000, 620000 4720000, 620000 4700000))',
-            25830
-        )
-    ),
-    (
-        'Parque Natural de Ancares',
-        'Parque Natural',
-        'Terrestre',
-        53500.0,
-        ST_GeomFromText(
-            'POLYGON((600000 4730000, 640000 4730000, 640000 4760000, 600000 4760000, 600000 4730000))',
-            25830
-        )
-    );
+    ('ENP001', 'Ria de Arousa e Illa de Arousa', 'Parque Natural', 'Maritimo-terrestre', 22000.0,
+        ST_GeomFromText('POLYGON((33000 4763000, 55000 4763000, 55000 4783000, 33000 4783000, 33000 4763000))', 25830)),
+    ('ENP002', 'Duna de A Lamina', 'Monumento Natural', 'Terrestre', 150.0,
+        ST_GeomFromText('POLYGON((40000 4769000, 44000 4769000, 44000 4773000, 40000 4773000, 40000 4769000))', 25830));
     """,
 
     # ── 6. Masas de Agua Superficiales ──
     """
-    INSERT INTO masas_agua_superficial (nombre, tipo, categoria, estado_ecologico, estado_quimico, demarcacion, geom)
+    INSERT INTO masas_agua_superficial (codigo_masa, nombre, tipo, categoria, estado_ecologico, estado_quimico, demarcacion, geom)
     VALUES
-    (
-        'Río Ulla - Tramo medio',
-        'Río',
-        'Natural',
-        'Bueno',
-        'Conforme',
-        'Galicia-Costa',
-        ST_GeomFromText(
-            'POLYGON((685000 4745000, 705000 4745000, 705000 4755000, 685000 4755000, 685000 4745000))',
-            25830
-        )
-    ),
-    (
-        'Embalse de Belesar',
-        'Lago',
-        'Artificial',
-        'Aceptable',
-        'Conforme',
-        'Miño-Sil',
-        ST_GeomFromText(
-            'POLYGON((640000 4720000, 660000 4720000, 660000 4730000, 640000 4730000, 640000 4720000))',
-            25830
-        )
-    );
+    ('MAS001', 'Rio Ulla - Tramo bajo', 'Rio', 'Natural', 'Bueno', 'Conforme', 'Galicia-Costa',
+        ST_GeomFromText('POLYGON((38000 4770000, 50000 4770000, 50000 4776000, 38000 4776000, 38000 4770000))', 25830)),
+    ('MAS002', 'Estuario de Arousa', 'Costera', 'Natural', 'Bueno', 'Conforme', 'Galicia-Costa',
+        ST_GeomFromText('POLYGON((30000 4764000, 55000 4764000, 55000 4780000, 30000 4780000, 30000 4764000))', 25830));
     """,
 
     # ── 7. Masas de Agua Subterráneas ──
     """
-    INSERT INTO masas_agua_subterranea (nombre, estado_cuantitativo, estado_quimico, superficie_km2, demarcacion, geom)
+    INSERT INTO masas_agua_subterranea (codigo_masa, nombre, estado_cuantitativo, estado_quimico, superficie_km2, demarcacion, geom)
     VALUES
-    (
-        'Acuífero de la Ría de Arousa',
-        'Bueno',
-        'Bueno',
-        150.0,
-        'Galicia-Costa',
-        ST_GeomFromText(
-            'POLYGON((670000 4710000, 710000 4710000, 710000 4735000, 670000 4735000, 670000 4710000))',
-            25830
-        )
-    ),
-    (
-        'Acuífero de la Limia',
-        'Aceptable',
-        'Bueno',
-        200.0,
-        'Miño-Sil',
-        ST_GeomFromText(
-            'POLYGON((640000 4660000, 670000 4660000, 670000 4680000, 640000 4680000, 640000 4660000))',
-            25830
-        )
-    );
+    ('MASUB001', 'Acuifero de la Ria de Arousa', 'Bueno', 'Bueno', 180.0, 'Galicia-Costa',
+        ST_GeomFromText('POLYGON((25000 4760000, 60000 4760000, 60000 4785000, 25000 4785000, 25000 4760000))', 25830)),
+    ('MASUB002', 'Acuifero del Salmes', 'Bueno', 'Bueno', 95.0, 'Galicia-Costa',
+        ST_GeomFromText('POLYGON((20000 4765000, 50000 4765000, 50000 4780000, 20000 4780000, 20000 4765000))', 25830));
     """,
 ]
 
