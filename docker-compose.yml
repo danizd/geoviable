@@ -65,10 +65,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    # No ports exposed — accessed via Nginx proxy_pass
+    ports:
+      - "8000:8000"
 
   # ────────────────────────────────────────────────────
-  # Nginx — Reverse Proxy + Static Frontend
+  # Nginx — Static Frontend Only
   # ────────────────────────────────────────────────────
   geoviable-web:
     image: public.ecr.aws/docker/library/nginx:1.25-alpine
@@ -77,12 +78,10 @@ services:
     depends_on:
       - geoviable-api
     ports:
-      - "80:80"
-      - "443:443"
+      - "3000:80"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./frontend/build:/usr/share/nginx/html:ro
-      - ./certs:/etc/letsencrypt:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - geoviable-net
 
