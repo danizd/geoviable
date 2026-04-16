@@ -108,14 +108,37 @@ def generate_static_map(
     )
 
     # ── Step 5: Add basemap tiles ──
-    try:
-        cx.add_basemap(
-            ax,
-            source=getattr(cx.providers, basemap, cx.providers.OpenStreetMap.Mapnik),
-            attribution="© OpenStreetMap contributors",
-        )
-    except Exception:
-        logger.warning("Failed to load basemap tiles — rendering without basemap.")
+    # Calcula zoom adecuado al tamaño de la parcela para minimizar tiles descargados
+    bounds = gdf_parcel.total_bounds  # [minx, miny, maxx, maxy] en EPSG:3857
+    extent_m = max(bounds[2] - bounds[0], bounds[3] - bounds[1])
+    if extent_m < 500:
+        zoom = 17
+    elif extent_m < 2000:
+        zoom = 15
+    elif extent_m < 10000:
+        zoom = 13
+    else:
+        zoom = 11
+
+    _basemap_loaded = False
+    for provider in [
+        cx.providers.OpenStreetMap.Mapnik,
+        cx.providers.CartoDB.Positron,
+    ]:
+        try:
+            cx.add_basemap(
+                ax,
+                source=provider,
+                zoom=zoom,
+                attribution="© OpenStreetMap contributors",
+            )
+            _basemap_loaded = True
+            break
+        except Exception as exc:
+            logger.warning("Basemap provider failed (%s): %s", provider, exc)
+
+    if not _basemap_loaded:
+        logger.warning("All basemap providers failed — rendering without basemap.")
 
     # ── Step 6: Build legend from affected layers ──
     legend_patches = [
