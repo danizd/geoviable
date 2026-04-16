@@ -21,7 +21,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       # Auto-run init SQL on first container creation (extensions + tables)
-      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      # Nota: Docker Desktop/Windows no soporta bind-mount de archivos individuales;
+      # se monta el directorio backend/initdb/ completo como workaround.
+      - ./backend/initdb:/docker-entrypoint-initdb.d:ro
     networks:
       - geoviable-net
     healthcheck:

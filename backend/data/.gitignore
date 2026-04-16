@@ -1,0 +1,7 @@
+# Ignorar todos los ZIPs de datos (son demasiado pesados para Git)
+*.zip
+*.ZIP
+
+# Mantener este fichero y cualquier README
+!.gitignore
+!README.md

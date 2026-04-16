@@ -56,9 +56,12 @@ geoviable/
 │   │   ├── services/             # Lógica de negocio (análisis, PDF, validación)
 │   │   ├── templates/report/     # Plantillas HTML Jinja2 para PDF
 │   │   └── static/               # Recursos estáticos (logo, etc.)
+│   ├── initdb/
+│   │   └── 01_init.sql           # SQL de inicialización (montado como dir en Docker)
 │   ├── scripts/
 │   │   ├── update_layers.py      # Cron mensual de actualización de capas
-│   │   ├── init_db.sql           # SQL de inicialización de BD (PostGIS + tablas)
+│   │   ├── load_initial_data.py  # Carga manual desde ZIPs locales
+│   │   ├── init_db.sql           # SQL de inicialización de BD (referencia/uso manual)
 │   │   ├── entrypoint.sh         # Entrypoint del contenedor (cron + uvicorn)
 │   │   └── crontab               # Programación cron para actualización de capas
 │   └── tests/                    # Suite de tests con pytest
@@ -454,8 +457,8 @@ cd ..
 # Instalar PostGIS manualmente
 docker exec geoviable-db psql -U geoviable -d geoviable -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
-# Crear las tablas (si el archivo init_db.sql existe y es correcto)
-docker exec -i geoviable-db psql -U geoviable -d geoviable < backend\scripts\init_db.sql
+# Crear las tablas
+docker exec -i geoviable-db psql -U geoviable -d geoviable < backend\initdb\01_init.sql
 
 # Si no existe init_db.sql, créalo a partir del esquema en specs/Esquema_base_datos.md
 ```

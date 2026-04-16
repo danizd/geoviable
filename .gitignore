@@ -3,14 +3,14 @@
 *.pem
 *.key
 
-# Datos geoespaciales descargados
-data/
+# Datos geoespaciales descargados (solo en directorios de datos, no en todo el repo)
+/data/
+backend/data/*.zip
 *.shp
 *.dbf
 *.shx
 *.prj
 *.cpg
-*.zip
 
 # Python
 __pycache__/
@@ -44,7 +44,7 @@ logs/
 
 # Backups de BD
 backups/
-*.sql
+backups/*.sql
 *.sql.gz
 
 # OS
