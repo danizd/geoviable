@@ -17,21 +17,21 @@ const GALICIA_ZOOM = 8;
 
 // ── Colores por capa ambiental (coinciden con el mapa estático del PDF) ──
 const LAYER_COLORS = {
-  red_natura_2000:              '#DC2626',
-  zonas_inundables:             '#60A5FA',
-  dominio_publico_hidraulico:   '#1E40AF',
-  vias_pecuarias:               '#92400E',
-  espacios_naturales_protegidos:'#16A34A',
-  masas_agua_superficial:       '#06B6D4',
-  masas_agua_subterranea:       '#0891B2',
+  red_natura_2000:               '#F97316', // naranja vivo — antes rojo (similar a alertas/iconos)
+  zonas_inundables:              '#A21CAF', // magenta — antes azul claro (idéntico al default de Leaflet)
+  dominio_publico_hidraulico:    '#7C3AED', // violeta — antes azul oscuro (familia del default)
+  vias_pecuarias:                '#CA8A04', // ámbar dorado — antes marrón (más visible sobre tierra)
+  espacios_naturales_protegidos: '#BE185D', // rosa oscuro — antes verde (se fundía con parques OSM)
+  masas_agua_superficial:        '#0D9488', // teal verdoso — antes cian (alejado del azul OSM)
+  masas_agua_subterranea:        '#6D28D9', // índigo — antes azul teal (diferencia de superficial)
 };
 
 // ── Polygon style ──
 const POLYGON_STYLE = {
-  color: '#2563EB',
-  weight: 2.5,
-  fillColor: '#2563EB',
-  fillOpacity: 0.2,
+  color:       '#334155', // slate oscuro — borde neutro, no compite con ninguna capa
+  weight:      2.5,
+  fillColor:   '#334155',
+  fillOpacity: 0.15,      // un poco menos opaco para ser más "base"
 };
 
 // ── Internal component: initializes Geoman on the map ──
