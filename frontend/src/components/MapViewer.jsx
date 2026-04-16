@@ -15,6 +15,17 @@ const L = window.L;
 const GALICIA_CENTER = [42.8, -8.0];
 const GALICIA_ZOOM = 8;
 
+// ── Colores por capa ambiental (coinciden con el mapa estático del PDF) ──
+const LAYER_COLORS = {
+  red_natura_2000:              '#DC2626',
+  zonas_inundables:             '#60A5FA',
+  dominio_publico_hidraulico:   '#1E40AF',
+  vias_pecuarias:               '#92400E',
+  espacios_naturales_protegidos:'#16A34A',
+  masas_agua_superficial:       '#06B6D4',
+  masas_agua_subterranea:       '#0891B2',
+};
+
 // ── Polygon style ──
 const POLYGON_STYLE = {
   color: '#2563EB',
@@ -157,8 +168,9 @@ function DrawButton({ isDrawing, onToggle }) {
 }
 
 // ── Main MapViewer component ──
-function MapViewer({ polygonGeoJSON, onPolygonSet, onPolygonClear, onError }) {
+function MapViewer({ polygonGeoJSON, onPolygonSet, onPolygonClear, onError, analysisResults }) {
   const mapRef = useRef(null);
+  const analysisLayersRef = useRef([]);
 
   // ── Capture map reference ──
   const onMapReady = useCallback((event) => {
@@ -218,6 +230,56 @@ function MapViewer({ polygonGeoJSON, onPolygonSet, onPolygonClear, onError }) {
       setIsDrawing(false);
     }
   }, [polygonGeoJSON]);
+
+  // ── Pintar/limpiar geometrías de afecciones cuando cambia analysisResults ──
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Limpiar capas anteriores
+    analysisLayersRef.current.forEach((layer) => map.removeLayer(layer));
+    analysisLayersRef.current = [];
+
+    if (!analysisResults) return;
+
+    const newLayers = [];
+    (analysisResults.layers || []).forEach((layerResult) => {
+      if (!layerResult.affected) return;
+      const color = LAYER_COLORS[layerResult.layer_name] || '#888888';
+
+      layerResult.features.forEach((feature) => {
+        if (!feature.intersection_geometry) return;
+        try {
+          const geoJsonLayer = L.geoJSON(
+            { type: 'Feature', geometry: feature.intersection_geometry, properties: {} },
+            {
+              style: {
+                color,
+                weight: 2,
+                fillColor: color,
+                fillOpacity: 0.35,
+                dashArray: '4 3',
+              },
+            }
+          );
+          // Tooltip con nombre de capa y nombre del feature
+          const label = feature.nombre || feature.nombre_cauce || feature.codigo_masa || '';
+          geoJsonLayer.bindTooltip(
+            `<strong>${layerResult.display_name}</strong>${label ? '<br/>' + label : ''}`,
+            { sticky: true, opacity: 0.9 }
+          );
+          geoJsonLayer.addTo(map);
+          newLayers.push(geoJsonLayer);
+        } catch (e) {
+          console.warn('Error pintando afección:', e);
+        }
+      });
+    });
+
+    analysisLayersRef.current = newLayers;
+  }, [analysisResults]);
+
+  // ── Cuando se elimina el polígono, limpiar también las capas de análisis ──
 
   // ── When polygonGeoJSON changes externally (file upload or deletion) ──
   useEffect(() => {

@@ -16,6 +16,7 @@ function App() {
   const [project, setProject] = useState({ name: '', author: '', description: '' });
   const [isGenerating, setIsGenerating] = useState(false);
   const [toast, setToast] = useState(null);
+  const [analysisResults, setAnalysisResults] = useState(null);
 
   // ── Toast notification helper ──
   const showToast = useCallback((message, type = 'error') => {
@@ -26,10 +27,12 @@ function App() {
   // ── Handle polygon drawn/loaded from map or file ──
   const handlePolygonSet = useCallback((geojson) => {
     setPolygonGeoJSON(geojson);
+    setAnalysisResults(null);
   }, []);
 
   const handlePolygonClear = useCallback(() => {
     setPolygonGeoJSON(null);
+    setAnalysisResults(null);
   }, []);
 
   // ── Handle project form changes ──
@@ -38,7 +41,7 @@ function App() {
   }, []);
 
   // ── Handle report generation ──
-  const handleGenerateReport = useCallback(() => {
+  const handleGenerateReport = useCallback(async () => {
     if (!polygonGeoJSON) {
       showToast('Debes dibujar o cargar un polígono antes de generar el informe.', 'warning');
       return;
@@ -49,43 +52,49 @@ function App() {
     }
 
     setIsGenerating(true);
-    showToast('Generando informe PDF...', 'info');
+    setAnalysisResults(null);
 
-    // Call the API to generate the PDF
-    fetch('/api/v1/report/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        geojson: polygonGeoJSON,
-        project: project,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.json().then((err) => {
-            throw new Error(err.error?.message || `Error ${response.status}`);
-          });
-        }
-        return response.blob();
-      })
-      .then((blob) => {
-        // Trigger download
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `GeoViable_Informe_${project.name.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        showToast('Informe generado y descargado con éxito.', 'success');
-      })
-      .catch((err) => {
-        showToast(err.message || 'Error al generar el informe.', 'error');
-      })
-      .finally(() => {
-        setIsGenerating(false);
+    try {
+      // Paso 1: análisis espacial → obtener geometrías de intersección para pintarlas en el mapa
+      showToast('Analizando capas ambientales...', 'info');
+      const analyzeRes = await fetch('/api/v1/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(polygonGeoJSON),
       });
+      if (analyzeRes.ok) {
+        const analyzeData = await analyzeRes.json();
+        setAnalysisResults(analyzeData.analysis);
+      }
+
+      // Paso 2: generar PDF
+      showToast('Generando informe PDF...', 'info');
+      const reportRes = await fetch('/api/v1/report/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geojson: polygonGeoJSON, project }),
+      });
+
+      if (!reportRes.ok) {
+        const err = await reportRes.json().catch(() => null);
+        throw new Error(err?.error?.message || `Error ${reportRes.status}`);
+      }
+
+      const blob = await reportRes.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `GeoViable_Informe_${project.name.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast('Informe generado y descargado con éxito.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Error al generar el informe.', 'error');
+    } finally {
+      setIsGenerating(false);
+    }
   }, [polygonGeoJSON, project, showToast]);
 
   return (
@@ -122,6 +131,7 @@ function App() {
             onPolygonSet={handlePolygonSet}
             onPolygonClear={handlePolygonClear}
             onError={showToast}
+            analysisResults={analysisResults}
           />
         </main>
       </div>

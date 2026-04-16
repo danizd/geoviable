@@ -244,7 +244,13 @@ def _query_layer(
                 ROUND(
                     ST_Length(ST_Intersection(vp.geom, up.geom))::numeric,
                     2
-                ) AS longitud_afectada_m
+                ) AS longitud_afectada_m,
+                ST_AsGeoJSON(
+                    ST_Transform(
+                        ST_Buffer(vp.geom, vp.anchura_legal_m / 2),
+                        4326
+                    )
+                ) AS intersection_geojson
             FROM vias_pecuarias vp, user_parcel up, parcel_area pa
             WHERE ST_Intersects(
                 ST_Buffer(vp.geom, vp.anchura_legal_m / 2),
@@ -269,7 +275,13 @@ def _query_layer(
                 ROUND(
                     (100.0 * ST_Area(ST_Intersection({table_alias}.geom, up.geom)) / pa.area)::numeric,
                     2
-                ) AS porcentaje_solape
+                ) AS porcentaje_solape,
+                ST_AsGeoJSON(
+                    ST_Transform(
+                        ST_Intersection({table_alias}.geom, up.geom),
+                        4326
+                    )
+                ) AS intersection_geojson
             FROM {layer_cfg["table"]} {table_alias}, user_parcel up, parcel_area pa
             WHERE ST_Intersects({table_alias}.geom, up.geom)
         """)
@@ -279,10 +291,18 @@ def _query_layer(
     features = []
     for row in rows:
         feature = {}
-        # Convert Row to dict
         row_dict = dict(row._mapping)
+        # Extraer y parsear geometría de intersección
+        raw_geojson = row_dict.pop("intersection_geojson", None)
+        if raw_geojson:
+            try:
+                feature["intersection_geometry"] = json.loads(raw_geojson)
+            except (json.JSONDecodeError, TypeError):
+                feature["intersection_geometry"] = None
+        else:
+            feature["intersection_geometry"] = None
+        # Convertir Decimal a float para serialización JSON
         for key, value in row_dict.items():
-            # Convert Decimal to float for JSON serialization
             if hasattr(value, "__float__"):
                 value = float(value)
             feature[key] = value
