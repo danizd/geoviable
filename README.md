@@ -144,9 +144,9 @@ Cuando todos los contenedores están corriendo:
 
 | Servicio | URL | Descripción |
 |---|---|---|
-| **Frontend** | http://localhost | Aplicación React (servida por Nginx) |
-| **API Docs** | http://localhost/api/v1/docs | Swagger UI de FastAPI |
-| **Health Check** | http://localhost/api/v1/health | Estado del servicio |
+| **Frontend** | http://localhost:3000 | Aplicación React (servida por Nginx) |
+| **API Docs** | http://localhost:8000/docs | Swagger UI de FastAPI |
+| **Health Check** | http://localhost:8000/api/v1/health | Estado del servicio |
 
 ### 5. Cargar Datos Ambientales Iniciales
 
@@ -528,7 +528,7 @@ docker compose ps
 docker logs geoviable-api --tail 30
 
 # 3. Health check de la API
-curl http://localhost/api/v1/health
+curl http://localhost:8000/api/v1/health
 
 # 4. Verificar PostGIS
 docker exec geoviable-db psql -U geoviable -d geoviable -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'postgis';"
@@ -537,7 +537,7 @@ docker exec geoviable-db psql -U geoviable -d geoviable -c "SELECT extname, extv
 docker exec geoviable-db psql -U geoviable -d geoviable -c "SELECT COUNT(*) FROM red_natura_2000;"
 
 # 6. Probar el endpoint de análisis con un polígono de prueba
-curl -X POST http://localhost/api/v1/analyze ^
+curl -X POST http://localhost:8000/api/v1/analyze ^
   -H "Content-Type: application/json" ^
   -d "{\"type\":\"Feature\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-8.65,42.95],[-8.55,42.95],[-8.55,43.02],[-8.65,43.02],[-8.65,42.95]]]},\"properties\":{}}"
 ```

@@ -125,7 +125,7 @@ echo    GeoViable is starting!
 echo ========================================
 echo.
 echo Services:
-echo   - Frontend:  http://localhost
+echo   - Frontend:  http://localhost:3000
 echo   - Backend:   http://localhost:8000
 echo   - Database:  Internal (not exposed)
 echo.
@@ -136,6 +136,6 @@ echo   Reset database:   docker compose down -v ^&^& docker compose up -d
 echo.
 echo Opening browser...
 timeout /t 3 /nobreak >nul
-start http://localhost
+start http://localhost:3000
 
 pause
