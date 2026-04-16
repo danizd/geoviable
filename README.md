@@ -446,27 +446,27 @@ cd ..
 
 ---
 
-### 3. La API devuelve error 500 — `function st_geomfromgeojson does not exist`
+### 3. La API devuelve error 500 — tablas no existen o PostGIS no instalado
 
-**Síntoma:** Al llamar a `/api/v1/report/generate` o `/api/v1/analyze`, la respuesta es 500 con el error mencionado.
+**Síntomas:**
+- `relation "red_natura_2000" does not exist`
+- `function st_geomfromgeojson does not exist`
 
-**Causa probable:** La extensión PostGIS no está instalada en la base de datos. Esto ocurre cuando el archivo `init_db.sql` no se ejecutó en la creación inicial del contenedor (porque era un directorio en lugar de un archivo, o porque el contenedor ya existía).
+**Causa:** El script `init_db.sql` no se ejecutó al crear el contenedor. Ocurre cuando el volumen `pgdata` ya existía de un despliegue anterior (el script de init solo corre en BD vacía), o cuando Docker creó `01_init.sql` como directorio en lugar de archivo (bug conocido con `kartoza/postgis` y `postgis/postgis` en Windows).
 
-**Solución:**
+**Solución — comando universal (funciona en local y en Oracle):**
 ```bash
-# Instalar PostGIS manualmente
-docker exec geoviable-db psql -U geoviable -d geoviable -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+# En Linux/Oracle (ejecuta como usuario postgres dentro del contenedor, sin contraseña)
+docker exec -u postgres -i geoviable-db psql -d geoviable < backend/scripts/init_db.sql
 
-# Crear las tablas
-docker exec -i geoviable-db psql -U geoviable -d geoviable < backend\initdb\01_init.sql
-
-# Si no existe init_db.sql, créalo a partir del esquema en specs/Esquema_base_datos.md
+# En Windows local
+docker exec -u postgres -i geoviable-db psql -d geoviable < backend\scripts\init_db.sql
 ```
 
 **Verificación:**
 ```bash
-docker exec geoviable-db psql -U geoviable -d geoviable -c "\dt"
-# Deberías ver las 7 tablas de capas + layer_update_log
+docker exec -u postgres geoviable-db psql -d geoviable -c "\dt"
+# Deberías ver las 8 tablas: 7 capas ambientales + layer_update_log
 ```
 
 ---
