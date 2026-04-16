@@ -21,7 +21,7 @@ const LAYER_COLORS = {
   zonas_inundables:              '#A21CAF', // magenta — antes azul claro (idéntico al default de Leaflet)
   dominio_publico_hidraulico:    '#7C3AED', // violeta — antes azul oscuro (familia del default)
   vias_pecuarias:                '#CA8A04', // ámbar dorado — antes marrón (más visible sobre tierra)
-  espacios_naturales_protegidos: '#BE185D', // rosa oscuro — antes verde (se fundía con parques OSM)
+  espacios_naturales_protegidos: '#ff82b6ff', // rosa oscuro — antes verde (se fundía con parques OSM)
   masas_agua_superficial:        '#0D9488', // teal verdoso — antes cian (alejado del azul OSM)
   masas_agua_subterranea:        '#6D28D9', // índigo — antes azul teal (diferencia de superficial)
 };
