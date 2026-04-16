@@ -24,7 +24,7 @@ pip-selfcheck.json
 
 # Node / Frontend
 node_modules/
-frontend/build/
+# frontend/build/ — NO ignorar: el build se commitea para despliegue en Oracle (sin npm)
 frontend/dist/
 frontend/.vite/
 

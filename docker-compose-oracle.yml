@@ -1,0 +1,94 @@
+# ==============================================================================
+# GeoViable — Docker Compose (Production)
+# ==============================================================================
+# Services: PostgreSQL/PostGIS, FastAPI, Nginx
+# All communication via internal bridge network. Only Nginx exposes ports.
+# ==============================================================================
+version: "3.9"
+
+services:
+  # ────────────────────────────────────────────────────
+  # PostgreSQL 15 + PostGIS 3.4
+  # ────────────────────────────────────────────────────
+  geoviable-db:
+    image: kartoza/postgis:15-3.4
+    container_name: geoviable-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Auto-run init SQL on first container creation (extensions + tables)
+      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    networks:
+      - geoviable-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # No ports exposed to host — only accessible via internal Docker network
+
+  # ────────────────────────────────────────────────────
+  # FastAPI + WeasyPrint + Cron (layer update)
+  # ────────────────────────────────────────────────────
+  geoviable-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: geoviable-api
+    restart: unless-stopped
+    depends_on:
+      geoviable-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ENVIRONMENT: ${ENVIRONMENT}
+      LOG_LEVEL: debug
+      MAX_POLYGON_AREA_KM2: ${MAX_POLYGON_AREA_KM2:-100}
+      MAX_POLYGON_VERTICES: ${MAX_POLYGON_VERTICES:-10000}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-5}
+      QUERY_TIMEOUT_SECONDS: ${QUERY_TIMEOUT_SECONDS:-30}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    volumes:
+      # Mount templates and static as read-only (rebuild container to update)
+      - ./backend/app/templates:/app/templates:ro
+      - ./backend/app/static:/app/static:ro
+      # ZIPs de datos ambientales (subidos manualmente al servidor)
+      - ./backend/data:/app/data:ro
+    networks:
+      - geoviable-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "8001:8000"
+
+  # ────────────────────────────────────────────────────
+  # Nginx — Static Frontend Only
+  # ────────────────────────────────────────────────────
+  geoviable-web:
+    image: public.ecr.aws/docker/library/nginx:1.25-alpine
+    container_name: geoviable-web
+    restart: unless-stopped
+    depends_on:
+      - geoviable-api
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend/build:/usr/share/nginx/html:ro
+      - ./nginx/conf.d/local-dev.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - geoviable-net
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  geoviable-net:
+    driver: bridge
