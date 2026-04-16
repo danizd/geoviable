@@ -56,6 +56,8 @@ services:
       # Mount templates and static as read-only (rebuild container to update)
       - ./backend/app/templates:/app/templates:ro
       - ./backend/app/static:/app/static:ro
+      # ZIPs de datos ambientales para carga inicial (load_initial_data.py)
+      - ./backend/data:/app/data:ro
     networks:
       - geoviable-net
     healthcheck:

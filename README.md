@@ -147,16 +147,49 @@ Cuando todos los contenedores están corriendo:
 
 ### 5. Cargar Datos Ambientales Iniciales
 
-Al ejecutar por primera vez, la base de datos no tiene capas ambientales. Debes cargarlas:
+Al ejecutar por primera vez, la base de datos no tiene capas ambientales. Debes cargarlas mediante una de estas opciones:
+
+#### Opción A — Carga manual desde ZIPs (recomendada)
+
+Los ZIPs de datos ambientales preprocesados (shapefiles oficiales de MITECO/CNIG) están disponibles bajo petición:
+
+> **Solicita los ZIPs a:** [daniel.zas.dacosta@gmail.com](mailto:daniel.zas.dacosta@gmail.com)
+
+Una vez recibidos, coloca los ficheros en `backend/data/` con estos nombres exactos:
+
+| Fichero | Capa |
+|---|---|
+| `red_natura_2000.zip` | Red Natura 2000 (ZEPA + LIC/ZEC) |
+| `zonas_inundables_t100.zip` | Zonas inundables período de retorno T100 |
+| `zonas_inundables_t500.zip` | Zonas inundables período de retorno T500 |
+| `dph.zip` | Dominio Público Hidráulico |
+| `vias_pecuarias.zip` | Vías pecuarias |
+| `enp.zip` | Espacios Naturales Protegidos |
+| `masas_agua_superficial.zip` | Masas de agua superficiales |
+| `masas_agua_subterranea.zip` | Masas de agua subterráneas |
+
+Luego ejecuta el script de carga:
 
 ```bash
-# Opción A: Automatizada (requiere internet + disponibilidad MITECO/CNIG)
-docker compose exec geoviable-api python -m scripts.update_layers
+# (Opcional) Inspeccionar columnas y valores de demarcación antes de cargar
+docker compose exec geoviable-api python -m scripts.load_initial_data --inspect
 
-# Opción B: Manual (recomendado para la primera vez)
-# 1. Descargar shapefiles manualmente de MITECO/CNIG (ver specs/Fuentes_de_datos.md)
-# 2. Colocarlos en el directorio data/
-# 3. Ejecutar el script de carga
+# Cargar todas las capas
+docker compose exec geoviable-api python -m scripts.load_initial_data
+
+# Cargar solo una capa (si falla o quieres recargar)
+docker compose exec geoviable-api python -m scripts.load_initial_data --layer red_natura_2000
+```
+
+Capas disponibles para `--layer`: `red_natura_2000`, `zonas_inundables`, `dominio_publico_hidraulico`, `vias_pecuarias`, `espacios_naturales_protegidos`, `masas_agua_superficial`, `masas_agua_subterranea`.
+
+Al finalizar, el script imprime el conteo de registros cargados en cada tabla. Todos deben ser > 0.
+
+#### Opción B — Actualización automatizada (requiere internet)
+
+```bash
+# Descarga y carga desde MITECO/CNIG directamente (puede fallar si las URLs cambian)
+docker compose exec geoviable-api python -m scripts.update_layers
 ```
 
 ## Desarrollo
@@ -454,9 +487,15 @@ docker exec geoviable-db psql -U geoviable -d geoviable -c "
 "
 ```
 
-**Solución — Cargar datos reales (producción):**
+**Solución — Carga manual desde ZIPs (recomendado):**
 ```bash
-# Ejecutar el script de actualización de capas (descarga desde MITECO/CNIG)
+# Solicita los ZIPs a daniel.zas.dacosta@gmail.com y colócalos en backend/data/
+docker compose exec geoviable-api python -m scripts.load_initial_data
+```
+
+**Solución — Actualización automatizada (requiere internet):**
+```bash
+# Descarga desde MITECO/CNIG (puede fallar si las URLs han cambiado)
 docker compose exec geoviable-api python -m scripts.update_layers
 ```
 

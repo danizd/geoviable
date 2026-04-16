@@ -370,7 +370,11 @@ def process_gdf(gdf: gpd.GeoDataFrame, layer_cfg: LayerConfig) -> gpd.GeoDataFra
         logger.info("Reprojected from EPSG:%s to EPSG:%s", gdf.crs.to_epsg(), TARGET_SRID)
 
     # ── Filter by Galicia bounding box ──
-    galicia_bbox_25830 = GALICIA_BBOX_4326.to_crs(4326, TARGET_SRID)
+    galicia_bbox_25830 = (
+        gpd.GeoSeries([GALICIA_BBOX_4326], crs=4326)
+        .to_crs(epsg=TARGET_SRID)
+        .iloc[0]
+    )
     gdf = gdf[gdf.intersects(galicia_bbox_25830)]
     logger.info("Filtered to %d features within Galicia bbox", len(gdf))
 
@@ -431,7 +435,8 @@ def load_to_db(gdf: gpd.GeoDataFrame, table_name: str):
             schema="public",
         )
 
-        # VACUUM ANALYZE for query planner optimization
+    # VACUUM no puede ejecutarse dentro de una transacción — requiere AUTOCOMMIT
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         conn.execute(text(f"VACUUM ANALYZE {table_name}"))
 
     logger.info("Successfully loaded %d records into %s", len(gdf), table_name)
