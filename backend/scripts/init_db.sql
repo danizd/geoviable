@@ -88,7 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_enp_categoria ON espacios_naturales_protegidos(ca
 -- ── 6. Masas de agua superficiales ──
 CREATE TABLE IF NOT EXISTS masas_agua_superficial (
     id                  SERIAL PRIMARY KEY,
-    codigo_masa         VARCHAR(30),
+    codigo_masa         VARCHAR(100),
     nombre              VARCHAR(255),
     tipo                VARCHAR(100),
     categoria           VARCHAR(100),
@@ -102,7 +102,7 @@ CREATE INDEX IF NOT EXISTS idx_mas_geom ON masas_agua_superficial USING GIST (ge
 -- ── 7. Masas de agua subterráneas ──
 CREATE TABLE IF NOT EXISTS masas_agua_subterranea (
     id                  SERIAL PRIMARY KEY,
-    codigo_masa         VARCHAR(30),
+    codigo_masa         VARCHAR(100),
     nombre              VARCHAR(255),
     estado_cuantitativo VARCHAR(50),
     estado_quimico      VARCHAR(50),

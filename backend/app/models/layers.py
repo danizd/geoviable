@@ -177,7 +177,7 @@ class MasasAguaSuperficial(Base):
     __tablename__ = "masas_agua_superficial"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    codigo_masa = Column(String(30))
+    codigo_masa = Column(String(100))
     nombre = Column(String(255))
     tipo = Column(String(100))  # 'río' | 'lago' | 'embalse' | 'costera' | 'transición'
     categoria = Column(String(100))
@@ -201,7 +201,7 @@ class MasasAguaSubterranea(Base):
     __tablename__ = "masas_agua_subterranea"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    codigo_masa = Column(String(30))
+    codigo_masa = Column(String(100))
     nombre = Column(String(255))
     estado_cuantitativo = Column(String(50))  # 'bueno' | 'malo'
     estado_quimico = Column(String(50))  # 'bueno' | 'malo'

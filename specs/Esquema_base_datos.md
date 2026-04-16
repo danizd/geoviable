@@ -123,7 +123,7 @@ CREATE INDEX idx_enp_categoria ON espacios_naturales_protegidos(categoria);
 ```sql
 CREATE TABLE masas_agua_superficial (
     id                  SERIAL PRIMARY KEY,
-    codigo_masa         VARCHAR(30),             -- Código de la masa de agua
+    codigo_masa         VARCHAR(100),            -- Código de la masa de agua
     nombre              VARCHAR(255),            -- Nombre
     tipo                VARCHAR(100),            -- 'río' | 'lago' | 'embalse' | 'costera' | 'transición'
     categoria           VARCHAR(100),            -- Categoría según PHC

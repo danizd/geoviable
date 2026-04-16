@@ -273,22 +273,44 @@ def read_zip_to_gdf(zip_path: Path) -> gpd.GeoDataFrame:
         shp_files = [f for f in zf.namelist() if f.lower().endswith(".shp")]
         if not shp_files:
             raise ValueError(f"No se encontró ningún .shp en {zip_path.name}")
-        # Preferir shapefile peninsular (descartar Macaronesia/Canarias si hay varios)
-        _SKIP_KW = ("mac", "_can", "canaria", "macarone")
+        # Preferir shapefile peninsular (descartar Macaronesia/Canarias/regiones insulares)
+        _SKIP_KW = ("mac", "_can", "canaria", "macarone", "bale", "ceuta", "melilla")
         preferred = [
             f for f in shp_files
             if not any(kw in Path(f).stem.lower() for kw in _SKIP_KW)
         ]
-        selected_shp = preferred[0] if preferred else shp_files[0]
+        candidates = preferred if preferred else shp_files
+
         if len(shp_files) > 1:
             logger.warning(
-                "%s contiene %d shapefiles — usando: %s",
-                zip_path.name, len(shp_files), selected_shp,
+                "%s contiene %d shapefiles — candidatos: %s",
+                zip_path.name, len(shp_files), [Path(f).stem for f in candidates],
             )
+
         with tempfile.TemporaryDirectory() as tmpdir:
             zf.extractall(tmpdir)
-            shp_path = Path(tmpdir) / selected_shp
-            gdf = gpd.read_file(str(shp_path))
+
+            if len(candidates) == 1:
+                gdf = gpd.read_file(str(Path(tmpdir) / candidates[0]))
+            else:
+                # Con múltiples candidatos, elegir el que tenga más features
+                # (el shapefile peninsular es siempre el más grande)
+                best_gdf, best_count = None, -1
+                for shp in candidates:
+                    try:
+                        candidate_gdf = gpd.read_file(str(Path(tmpdir) / shp))
+                        if len(candidate_gdf) > best_count:
+                            best_count = len(candidate_gdf)
+                            best_gdf = candidate_gdf
+                            logger.info(
+                                "  %s → %d features (candidato actual)",
+                                Path(shp).stem, best_count,
+                            )
+                    except Exception as exc:
+                        logger.warning("Error leyendo %s: %s", shp, exc)
+                if best_gdf is None:
+                    raise ValueError(f"Ningún SHP válido en {zip_path.name}")
+                gdf = best_gdf
 
     if gdf.empty:
         raise ValueError(f"El shapefile en {zip_path.name} está vacío")
