@@ -96,16 +96,21 @@ def generate_static_map(
                 )
 
         if geometries:
-            gdf = gpd.GeoDataFrame(
-                {"layer": layer_result["layer_name"]},
-                geometry=geometries,
-                crs=CRS.from_epsg(4326),  # intersection_geometry viene en EPSG:4326
-            ).to_crs(epsg=3857)
-            layer_gdfs[layer_result["layer_name"]] = (gdf, layer_result["display_name"])
-            logger.debug(
-                "Capa '%s': %d geometrías de intersección para el mapa",
-                layer_result["display_name"], len(geometries),
-            )
+            try:
+                gdf = gpd.GeoDataFrame(
+                    geometry=geometries,
+                    crs=CRS.from_epsg(4326),  # intersection_geometry viene en EPSG:4326
+                ).to_crs(epsg=3857)
+                layer_gdfs[layer_result["layer_name"]] = (gdf, layer_result["display_name"])
+                logger.debug(
+                    "Capa '%s': %d geometrías de intersección para el mapa",
+                    layer_result["display_name"], len(geometries),
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Error creando GeoDataFrame para '%s': %s",
+                    layer_result["display_name"], exc,
+                )
 
     # ── Step 3: Reproject to Web Mercator (EPSG:3857) for contextily tiles ──
     gdf_parcel = gdf_parcel.to_crs(epsg=3857)
