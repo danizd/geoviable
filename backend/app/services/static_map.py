@@ -27,16 +27,16 @@ DPI = 300
 FIGURE_SIZE = (12, 8)  # inches → ~3600×2400 px at 300 DPI
 BBOX_PADDING = 0.20  # 20% padding around parcel bounds
 
-# Color palette for layers (matches PDF spec)
+# Color palette for layers (sincronizado con MapViewer.jsx del frontend)
 LAYER_COLORS = {
-    "parcel": "#2563EB",
-    "red_natura_2000": "#DC2626",
-    "zonas_inundables": "#60A5FA",
-    "dominio_publico_hidraulico": "#1E40AF",
-    "vias_pecuarias": "#92400E",
-    "espacios_naturales_protegidos": "#16A34A",
-    "masas_agua_superficial": "#06B6D4",
-    "masas_agua_subterranea": "#0891B2",
+    "parcel": "#334155",
+    "red_natura_2000": "#F97316",
+    "zonas_inundables": "#A21CAF",
+    "dominio_publico_hidraulico": "#7C3AED",
+    "vias_pecuarias": "#CA8A04",
+    "espacios_naturales_protegidos": "#BE185D",
+    "masas_agua_superficial": "#0D9488",
+    "masas_agua_subterranea": "#6D28D9",
 }
 
 
