@@ -390,6 +390,13 @@ El frontend debe construirse antes de iniciar los servicios. Si modificas el có
 cd frontend && npm run build
 ```
 
+> **IMPORTANTE**: Flujo de trabajo para cambios de frontend
+> 
+> 1. **Desarrollo local**: Después de modificar código React, ejecuta `cd frontend && npm run build` para generar los archivos estáticos.
+> 2. **Subir cambios**: Commit y push al repositorio con los cambios del frontend (incluida la carpeta `build/`).
+> 3. **Producción**: En Oracle, ejecuta `git pull origin master` y luego `docker compose -f docker-compose-oracle.yml up -d --build geoviable-web` para actualizar Nginx con los nuevos assets.
+
+
 Los cambios se reflejan automáticamente porque `frontend/build/` está montado como volumen en Nginx.
 
 ## Solución de Problemas Post-Despliegue
