@@ -542,6 +542,92 @@ curl -X POST http://localhost:8000/api/v1/analyze ^
   -d "{\"type\":\"Feature\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-8.65,42.95],[-8.55,42.95],[-8.55,43.02],[-8.65,43.02],[-8.65,42.95]]]},\"properties\":{}}"
 ```
 
+---
+
+## Despliegue en Producción (Oracle Cloud)
+
+El servidor de producción es una instancia Oracle Cloud Always Free (ARM, 24 GB RAM) con **Nginx Proxy Manager** como proxy inverso externo.
+
+### Arquitectura de puertos en producción
+
+| Servicio | Puerto externo (host) | Puerto interno (contenedor) |
+|---|---|---|
+| Frontend (Nginx) | 3000 | 80 |
+| API (FastAPI) | 8001 | 8000 |
+| Base de datos | no expuesto | 5432 |
+
+Nginx Proxy Manager enruta el tráfico externo hacia estos puertos. Dentro de la red Docker, el frontend hace proxy de `/api/` hacia `geoviable-api:8000`.
+
+### Primer despliegue
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/danizd/geoviable.git
+cd geoviable
+
+# 2. Crear el fichero de configuración
+cp .env.example .env
+# Editar .env con los valores de producción
+
+# 3. Subir los ZIPs de datos ambientales a backend/data/
+# (solicitar a daniel.zas.dacosta@gmail.com)
+
+# 4. Arrancar los servicios con el compose de Oracle
+docker compose -f docker-compose-oracle.yml up -d --build
+```
+
+> El frontend ya está compilado en `frontend/build/` dentro del repositorio — no es necesario instalar npm en el servidor.
+
+### Actualizar a la última versión
+
+```bash
+git pull origin master
+docker compose -f docker-compose-oracle.yml up -d --build
+```
+
+Si el backend cambió (Dockerfile o dependencias Python), Docker reconstruirá la imagen automáticamente gracias a `--build`. La base de datos y sus datos **no se pierden** porque el volumen `pgdata` persiste.
+
+### Reset completo (borra la BD)
+
+```bash
+docker compose -f docker-compose-oracle.yml down -v
+docker compose -f docker-compose-oracle.yml up -d --build
+# Después recargar los datos ambientales:
+docker compose -f docker-compose-oracle.yml exec geoviable-api python -m scripts.load_initial_data
+```
+
+### Actualizar solo el frontend (sin rebuild)
+
+```bash
+# En local: compilar y subir
+cd frontend && npm run build && cd ..
+git add frontend/build/
+git commit -m "build: actualizar frontend"
+git push
+
+# En el servidor:
+git pull origin master
+docker compose -f docker-compose-oracle.yml restart geoviable-web
+```
+
+### Comandos útiles en producción
+
+```bash
+# Estado de los servicios
+docker compose -f docker-compose-oracle.yml ps
+
+# Logs en tiempo real
+docker compose -f docker-compose-oracle.yml logs -f
+
+# Logs solo del API
+docker compose -f docker-compose-oracle.yml logs -f geoviable-api
+
+# Health check
+curl http://localhost:8001/api/v1/health
+```
+
+---
+
 ## Licencia
 
 Uso interno — GeoViable / movilab.es
