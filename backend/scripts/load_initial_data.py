@@ -36,6 +36,7 @@ from shapely.geometry import (
     Polygon,
     box,
 )
+from shapely.ops import transform
 from sqlalchemy import create_engine, text
 
 # Añadir el directorio padre al path para importar módulos de la app
@@ -172,7 +173,7 @@ LOCAL_LAYERS = [
             "codigo_masa", "nombre", "tipo", "categoria",
             "estado_ecologico", "estado_quimico", "demarcacion",
         ],
-        filter_demarcacion=["Galicia-Costa", "Miño-Sil"],
+        filter_demarcacion=None,  # Los códigos PHC varían entre versiones del dataset; el bbox ya filtra a Galicia
     ),
     LocalLayerConfig(
         table_name="masas_agua_subterranea",
@@ -272,14 +273,21 @@ def read_zip_to_gdf(zip_path: Path) -> gpd.GeoDataFrame:
         shp_files = [f for f in zf.namelist() if f.lower().endswith(".shp")]
         if not shp_files:
             raise ValueError(f"No se encontró ningún .shp en {zip_path.name}")
+        # Preferir shapefile peninsular (descartar Macaronesia/Canarias si hay varios)
+        _SKIP_KW = ("mac", "_can", "canaria", "macarone")
+        preferred = [
+            f for f in shp_files
+            if not any(kw in Path(f).stem.lower() for kw in _SKIP_KW)
+        ]
+        selected_shp = preferred[0] if preferred else shp_files[0]
         if len(shp_files) > 1:
             logger.warning(
-                "%s contiene %d shapefiles — usando el primero: %s",
-                zip_path.name, len(shp_files), shp_files[0],
+                "%s contiene %d shapefiles — usando: %s",
+                zip_path.name, len(shp_files), selected_shp,
             )
         with tempfile.TemporaryDirectory() as tmpdir:
             zf.extractall(tmpdir)
-            shp_path = Path(tmpdir) / shp_files[0]
+            shp_path = Path(tmpdir) / selected_shp
             gdf = gpd.read_file(str(shp_path))
 
     if gdf.empty:
@@ -298,9 +306,28 @@ def get_galicia_bbox_25830():
     )
 
 
+def _force_2d(geom):
+    """Elimina la coordenada Z de una geometría (PostGIS rechaza 3D en columnas 2D)."""
+    if geom is None or geom.is_empty:
+        return geom
+    return transform(lambda x, y, z=None: (x, y), geom)
+
+
 def filter_by_galicia(gdf: gpd.GeoDataFrame, table_name: str) -> gpd.GeoDataFrame:
-    """Elimina features fuera del bbox de Galicia."""
+    """Elimina features fuera del bbox de Galicia. Sanea geometrías inválidas antes del predicado."""
     galicia_geom = get_galicia_bbox_25830()
+
+    invalid_mask = ~gdf.geometry.is_valid
+    if invalid_mask.any():
+        logger.warning(
+            "[%s] Sanando %d geometrías inválidas antes del filtro bbox",
+            table_name, int(invalid_mask.sum()),
+        )
+        gdf = gdf.copy()
+        gdf.loc[invalid_mask, gdf.geometry.name] = (
+            gdf.geometry[invalid_mask].buffer(0)
+        )
+
     mask = gdf.intersects(galicia_geom)
     result = gdf[mask].copy()
     logger.info("[%s] Filtro Galicia bbox: %d → %d features", table_name, len(gdf), len(result))
@@ -366,6 +393,12 @@ def process_gdf(gdf: gpd.GeoDataFrame, cfg: LocalLayerConfig) -> gpd.GeoDataFram
     if original_epsg != TARGET_SRID:
         gdf = gdf.to_crs(epsg=TARGET_SRID)
         logger.info("[%s] Reproyectado EPSG:%s → EPSG:25830", cfg.table_name, original_epsg)
+
+    # 2b. Eliminar coordenada Z si existe (PostGIS rechaza geometrías 3D en columnas 2D)
+    if gdf.geometry.has_z.any():
+        logger.info("[%s] Eliminando coordenada Z (forzando 2D)", cfg.table_name)
+        gdf = gdf.copy()
+        gdf[gdf.geometry.name] = gdf.geometry.apply(_force_2d)
 
     # 3. Filtrar por bbox de Galicia
     gdf = filter_by_galicia(gdf, cfg.table_name)
