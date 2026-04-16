@@ -73,24 +73,39 @@ def generate_static_map(
         crs=CRS.from_epsg(4326),
     ).to_crs(epsg=25830)
 
-    # ── Step 2: Collect geometries of affected layers ──
-    # For the MVP, we overlay the parcel only. Full layer geometries
-    # would require extra queries; here we mark afecciones in the legend.
-    gdf_layers = gpd.GeoDataFrame(
-        columns=["name", "layer", "geometry"],
-        crs=CRS.from_epsg(25830),
-    )
+    # ── Step 2: Collect intersection geometries from analysis results ──
+    layer_gdfs = {}  # layer_name → GeoDataFrame in EPSG:3857
 
     for layer_result in analysis_results.get("layers", []):
         if not layer_result["affected"]:
             continue
-        # Collect geometries from features via a separate query
-        # For MVP: we skip geometry overlay and only show the parcel
-        logger.debug(
-            "Layer '%s' affected — %d features (overlay skipped in MVP)",
-            layer_result["display_name"],
-            len(layer_result["features"]),
-        )
+
+        geometries = []
+        for feat in layer_result["features"]:
+            geom_dict = feat.get("intersection_geometry")
+            if not geom_dict:
+                continue
+            try:
+                geom = shape(geom_dict)
+                if geom and not geom.is_empty:
+                    geometries.append(geom)
+            except Exception as exc:
+                logger.warning(
+                    "Error parseando geometría de '%s': %s",
+                    layer_result["display_name"], exc,
+                )
+
+        if geometries:
+            gdf = gpd.GeoDataFrame(
+                {"layer": layer_result["layer_name"]},
+                geometry=geometries,
+                crs=CRS.from_epsg(4326),  # intersection_geometry viene en EPSG:4326
+            ).to_crs(epsg=3857)
+            layer_gdfs[layer_result["layer_name"]] = (gdf, layer_result["display_name"])
+            logger.debug(
+                "Capa '%s': %d geometrías de intersección para el mapa",
+                layer_result["display_name"], len(geometries),
+            )
 
     # ── Step 3: Reproject to Web Mercator (EPSG:3857) for contextily tiles ──
     gdf_parcel = gdf_parcel.to_crs(epsg=3857)
@@ -98,7 +113,20 @@ def generate_static_map(
     # ── Step 4: Set up matplotlib figure ──
     fig, ax = plt.subplots(figsize=FIGURE_SIZE, dpi=DPI)
 
-    # Plot the parcel
+    # Plot the parcel (encima de todo — última en dibujarse)
+    # Primero pintar las capas afectadas para que la parcela quede visible
+    for layer_name, (gdf_layer, display_name) in layer_gdfs.items():
+        color = LAYER_COLORS.get(layer_name, "#888888")
+        try:
+            gdf_layer.plot(
+                ax=ax,
+                facecolor=color + "66",   # ~40% opacidad
+                edgecolor=color,
+                linewidth=1.5,
+            )
+        except Exception as exc:
+            logger.warning("Error pintando capa '%s' en mapa: %s", display_name, exc)
+
     gdf_parcel.plot(
         ax=ax,
         facecolor=LAYER_COLORS["parcel"] + "33",  # 20% opacity hex suffix
