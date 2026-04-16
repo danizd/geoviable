@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
- * LayerStatus — Displays the last update date of environmental data layers.
+ * LayerStatus — Panel expandible con el estado de datos por capa ambiental.
  *
  * Fetches GET /api/v1/layers/status on mount.
- * Shows a warning if data is older than 45 days.
+ * Muestra badge resumen en el header; al hacer click despliega el detalle por capa.
  */
-const WARNING_DAYS = 45;
-
 function LayerStatus() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/v1/layers/status')
@@ -30,36 +30,69 @@ function LayerStatus() {
       });
   }, []);
 
+  // Cerrar panel al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
   if (loading) {
-    return <span className="layer-status">Cargando estado de capas...</span>;
+    return <span className="layer-status-badge">Cargando capas...</span>;
   }
 
   if (error) {
-    return <span className="layer-status" style={{ color: '#DC2626' }}>⚠ Error al cargar estado</span>;
+    return <span className="layer-status-badge layer-status-error">⚠ Error BD</span>;
   }
 
-  if (!status || !status.last_global_update) {
-    return <span className="layer-status">Sin datos — capas no inicializadas</span>;
-  }
-
-  // Calculate age of last update
-  const updateDate = new Date(status.last_global_update);
-  const now = new Date();
-  const ageDays = Math.floor((now - updateDate) / (1000 * 60 * 60 * 24));
-  const isStale = ageDays > WARNING_DAYS;
-
-  const formattedDate = updateDate.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  const layers = status?.layers || [];
+  const withData = layers.filter((l) => l.records_count > 0).length;
+  const total = layers.length;
+  const allReady = withData === total;
+  const noneReady = withData === 0;
 
   return (
-    <span className={`layer-status ${isStale ? 'stale' : ''}`}>
-      {isStale ? '⚠ ' : '✅ '}
-      Datos actualizados al: {formattedDate}
-      {isStale && ` (${ageDays} días — desactualizado)`}
-    </span>
+    <div className="layer-status-wrapper" ref={panelRef}>
+      <button
+        className={`layer-status-badge ${
+          noneReady ? 'layer-status-error' : allReady ? 'layer-status-ok' : 'layer-status-warn'
+        }`}
+        onClick={() => setOpen((v) => !v)}
+        title="Ver estado de capas ambientales"
+      >
+        {noneReady ? '⚠' : allReady ? '✅' : '⚠'}{' '}
+        Capas: {withData}/{total}{' '}
+        <span className="layer-status-caret">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="layer-status-panel">
+          <div className="layer-status-panel-header">Estado de datos ambientales</div>
+          <ul className="layer-status-list">
+            {layers.map((layer) => (
+              <li key={layer.name} className="layer-status-item">
+                <span className={`layer-status-dot ${layer.records_count > 0 ? 'dot-ok' : 'dot-empty'}`} />
+                <span className="layer-status-name">{layer.display_name}</span>
+                <span className={`layer-status-count ${layer.records_count > 0 ? 'count-ok' : 'count-empty'}`}>
+                  {layer.records_count > 0
+                    ? layer.records_count.toLocaleString('es-ES') + ' reg.'
+                    : 'Sin datos'}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {noneReady && (
+            <div className="layer-status-panel-warning">
+              ⚠ No hay datos cargados. Los informes no mostrarán afecciones.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

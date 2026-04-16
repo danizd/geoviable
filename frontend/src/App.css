@@ -237,12 +237,128 @@
 }
 
 /* ── Layer Status ── */
-.layer-status {
-  font-size: 11px;
+.layer-status-wrapper {
+  position: relative;
 }
 
-.layer-status.stale {
-  color: #EAB308;
+.layer-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.layer-status-badge:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.layer-status-ok {
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.layer-status-warn {
+  border-color: rgba(234, 179, 8, 0.5);
+  background: rgba(234, 179, 8, 0.15);
+}
+
+.layer-status-error {
+  border-color: rgba(220, 38, 38, 0.5);
+  background: rgba(220, 38, 38, 0.15);
+}
+
+.layer-status-caret {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+.layer-status-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 2000;
+  width: 300px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: fadeDown 0.15s ease;
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.layer-status-panel-header {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-gray-500);
+  background: var(--color-gray-100);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.layer-status-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.layer-status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  color: var(--color-gray-700);
+}
+
+.layer-status-item:hover {
+  background: var(--color-gray-100);
+}
+
+.layer-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-ok    { background: #16A34A; }
+.dot-empty { background: #DC2626; }
+
+.layer-status-name {
+  flex: 1;
+}
+
+.layer-status-count {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.count-ok    { color: #16A34A; }
+.count-empty { color: #DC2626; }
+
+.layer-status-panel-warning {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #92400E;
+  background: #FEF3C7;
+  border-top: 1px solid #FDE68A;
 }
 
 /* ── Toast Notifications ── */
