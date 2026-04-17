@@ -17,6 +17,7 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [toast, setToast] = useState(null);
   const [analysisResults, setAnalysisResults] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ── Toast notification helper ──
   const showToast = useCallback((message, type = 'error') => {
@@ -104,15 +105,22 @@ function App() {
         <div className="header-logo">
           <span className="logo-text">GeoViable</span>
         </div>
-        <div className="header-status">
+        <div className="header-right">
           <LayerStatus />
+          <button
+            className="sidebar-toggle-btn"
+            onClick={() => setSidebarOpen(v => !v)}
+            aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
+          >
+            {sidebarOpen ? '✕' : '☰'}
+          </button>
         </div>
       </header>
 
       {/* ── Main Content ── */}
       <div className="app-body">
         {/* Sidebar */}
-        <aside className="app-sidebar">
+        <aside className={`app-sidebar${sidebarOpen ? ' open' : ''}`}>
           <ToolPanel
             polygonGeoJSON={polygonGeoJSON}
             onPolygonSet={handlePolygonSet}
