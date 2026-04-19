@@ -17,6 +17,7 @@ function AnalysisPage() {
   const [polygonGeoJSON, setPolygonGeoJSON] = useState(null);
   const [project, setProject] = useState({ name: '', author: '', description: '' });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingLayers, setIsLoadingLayers] = useState(false);
   const [toast, setToast] = useState(null);
   const [analysisResults, setAnalysisResults] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -43,6 +44,50 @@ function AnalysisPage() {
     setProject(projectData);
   }, []);
 
+  // ── Execute spatial analysis and paint affected layers on the map ──
+  const runSpatialAnalysis = useCallback(async () => {
+    if (!polygonGeoJSON) {
+      showToast('Debes dibujar o cargar un polígono antes de cargar capas.', 'warning');
+      return null;
+    }
+
+    const analyzeRes = await fetch('/api/v1/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(polygonGeoJSON),
+    });
+
+    if (!analyzeRes.ok) {
+      const errData = await analyzeRes.json().catch(() => null);
+      throw new Error(errData?.error?.message || 'No se pudo analizar el polígono.');
+    }
+
+    const analyzeData = await analyzeRes.json();
+    setAnalysisResults(analyzeData.analysis);
+    return analyzeData.analysis;
+  }, [polygonGeoJSON, showToast]);
+
+  // ── Handle layer load over current polygon ──
+  const handleLoadLayers = useCallback(async () => {
+    if (!polygonGeoJSON) {
+      showToast('Debes dibujar o cargar un polígono antes de cargar capas.', 'warning');
+      return;
+    }
+
+    setIsLoadingLayers(true);
+    setAnalysisResults(null);
+
+    try {
+      showToast('Analizando capas ambientales...', 'info');
+      await runSpatialAnalysis();
+      showToast('Capas cargadas correctamente sobre el polígono.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Error al cargar capas.', 'error');
+    } finally {
+      setIsLoadingLayers(false);
+    }
+  }, [polygonGeoJSON, runSpatialAnalysis, showToast]);
+
   // ── Handle report generation ──
   const handleGenerateReport = useCallback(async () => {
     if (!polygonGeoJSON) {
@@ -55,31 +100,21 @@ function AnalysisPage() {
     }
 
     setIsGenerating(true);
-    setAnalysisResults(null);
 
     try {
-      // Paso 1: análisis espacial → obtener geometrías de intersección para pintarlas en el mapa
-      showToast('Analizando capas ambientales...', 'info');
-      const analyzeRes = await fetch('/api/v1/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(polygonGeoJSON),
-      });
-      let analyzeData = null;
-      if (analyzeRes.ok) {
-        analyzeData = await analyzeRes.json();
-        setAnalysisResults(analyzeData.analysis);
-      }
+      // Paso 1: usar el análisis ya cargado o ejecutarlo si aún no existe
+      showToast('Preparando análisis para el informe...', 'info');
+      const analysis = analysisResults || (await runSpatialAnalysis());
 
       // Paso 2: navegar a la página de informe
       showToast('Redirigiendo al informe...', 'info');
-      navigate('/report', { state: { polygonGeoJSON, project, analysisResults: analyzeData?.analysis } });
+      navigate('/report', { state: { polygonGeoJSON, project, analysisResults: analysis } });
     } catch (err) {
       showToast(err.message || 'Error al generar el informe.', 'error');
     } finally {
       setIsGenerating(false);
     }
-  }, [polygonGeoJSON, project, showToast]);
+  }, [analysisResults, navigate, polygonGeoJSON, project, runSpatialAnalysis, showToast]);
 
   return (
     <div className="app-container">
@@ -114,6 +149,8 @@ function AnalysisPage() {
             onPolygonClear={handlePolygonClear}
             project={project}
             onProjectChange={handleProjectChange}
+            onLoadLayers={handleLoadLayers}
+            isLoadingLayers={isLoadingLayers}
             onGenerateReport={handleGenerateReport}
             isGenerating={isGenerating}
           />

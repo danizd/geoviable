@@ -9,24 +9,50 @@ import React from 'react';
  *
  * Processing state shows a spinner.
  */
-function GenerateReport({ hasPolygon, projectName, isGenerating, onGenerate }) {
-  const isDisabled = !hasPolygon || !projectName || projectName.length < 3 || isGenerating;
+function GenerateReport({
+  hasPolygon,
+  projectName,
+  isLoadingLayers,
+  isGenerating,
+  onLoadLayers,
+  onGenerate,
+}) {
+  const isLoadDisabled = !hasPolygon || isLoadingLayers || isGenerating;
+  const isGenerateDisabled = !hasPolygon || !projectName || projectName.length < 3 || isLoadingLayers || isGenerating;
 
   // Determine tooltip message
-  let tooltip = '';
+  let loadTooltip = '';
+  let generateTooltip = '';
   if (!hasPolygon) {
-    tooltip = 'Dibuja un polígono o sube un archivo para continuar.';
+    loadTooltip = 'Dibuja un polígono o sube un archivo para continuar.';
+    generateTooltip = 'Dibuja un polígono o sube un archivo para continuar.';
   } else if (!projectName || projectName.length < 3) {
-    tooltip = 'Introduce un nombre para el proyecto (mínimo 3 caracteres).';
+    generateTooltip = 'Introduce un nombre para el proyecto (mínimo 3 caracteres).';
   }
 
   return (
     <div className="generate-report">
       <button
+        className="load-layers-btn"
+        disabled={isLoadDisabled}
+        onClick={onLoadLayers}
+        title={loadTooltip}
+      >
+        {isLoadingLayers ? (
+          <>
+            <span className="spinner"></span>
+            Cargando capas...
+          </>
+        ) : (
+          '🗺️ Cargar capas en el polígono'
+        )}
+      </button>
+
+      <button
         className="generate-btn"
-        disabled={isDisabled}
+        disabled={isGenerateDisabled}
         onClick={onGenerate}
-        title={tooltip}
+        title={generateTooltip}
       >
         {isGenerating ? (
           <>

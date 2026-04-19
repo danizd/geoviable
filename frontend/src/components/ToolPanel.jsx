@@ -17,6 +17,8 @@ function ToolPanel({
   onPolygonClear,
   project,
   onProjectChange,
+  onLoadLayers,
+  isLoadingLayers,
   onGenerateReport,
   isGenerating,
 }) {
@@ -53,6 +55,8 @@ function ToolPanel({
         <GenerateReport
           hasPolygon={!!polygonGeoJSON}
           projectName={project.name}
+          onLoadLayers={onLoadLayers}
+          isLoadingLayers={isLoadingLayers}
           isGenerating={isGenerating}
           onGenerate={onGenerateReport}
         />

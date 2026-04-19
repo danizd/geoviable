@@ -59,8 +59,12 @@ function HowToUsePage() {
               y opcionalmente un autor y descripción.
             </li>
             <li>
-              <strong>Genera el informe:</strong> Haz clic en "Generar informe". El sistema analizará automáticamente
-              todas las capas ambientales que intersecan con tu polígono.
+              <strong>Carga las capas en el mapa:</strong> Haz clic en "Cargar capas en el polígono" para visualizar
+              en el mapa las afecciones detectadas sobre tu geometría antes de generar el informe.
+            </li>
+            <li>
+              <strong>Genera el informe:</strong> Haz clic en "Generar informe". El sistema reutilizará el análisis
+              de capas ya cargado (o lo ejecutará si aún no lo has hecho) y te llevará al informe.
             </li>
             <li>
               <strong>Revisa los resultados:</strong> Serás redirigido a una página con el resumen del análisis,
