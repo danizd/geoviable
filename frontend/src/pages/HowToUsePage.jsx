@@ -40,6 +40,7 @@ function HowToUsePage() {
             <li><strong>Vías pecuarias</strong> - Red nacional de caminos para el ganado</li>
             <li><strong>Espacios Naturales Protegidos</strong> - Red autonómica y nacional de espacios protegidos</li>
             <li><strong>Masas de agua</strong> - Superficiales y subterráneas según el Plan Hidrológico de Galicia</li>
+            <li><strong>Capa de satélite (PNOA)</strong> - Ortofotografía de alta resolución del Instituto Geográfico Nacional</li>
           </ul>
         </section>
 
@@ -53,6 +54,7 @@ function HowToUsePage() {
             <li>
               <strong>Dibuja o carga un polígono:</strong> Usa las herramientas de dibujo del mapa para trazar
               la geometría de tu parcela, o importa un archivo GeoJSON, KML, KMZ, SHP o DXF.
+              <em>Tip: Activa el modo "Satélite ON" para visualizar ortofotos del PNOA y precisar mejor los límites del terreno.</em>
             </li>
             <li>
               <strong>Completa los datos del proyecto:</strong> Introduce un nombre obligatorio (mínimo 3 caracteres),

@@ -150,7 +150,8 @@ def generate_report(payload: dict):
 
     # ── Generate static map ──
     try:
-        map_image_base64 = generate_static_map(geojson_str, analysis)
+        basemap_choice = project.get("basemap", "OpenStreetMap")
+        map_image_base64 = generate_static_map(geojson_str, analysis, basemap=basemap_choice)
     except Exception as exc:
         logger.exception("Static map generation failed: %s", exc)
         # Continue without map image — use a placeholder

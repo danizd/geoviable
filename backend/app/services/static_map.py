@@ -154,16 +154,31 @@ def generate_static_map(
         zoom = 11
 
     _basemap_loaded = False
-    for provider in [
+    
+    # ── Determine providers list based on choice ──
+    providers = []
+    if basemap.upper() == "PNOA":
+        # IGN PNOA Spain — URL format for contextily
+        pnoa_url = (
+            "https://www.ign.es/wmts/pnoa-ma?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
+            "&LAYER=OI.OrthoimageCoverage&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=GoogleMapsCompatible"
+            "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
+        )
+        providers.append(pnoa_url)
+    
+    # Fallback to standard providers
+    providers.extend([
         cx.providers.OpenStreetMap.Mapnik,
         cx.providers.CartoDB.Positron,
-    ]:
+    ])
+
+    for provider in providers:
         try:
             cx.add_basemap(
                 ax,
                 source=provider,
                 zoom=zoom,
-                attribution="© OpenStreetMap contributors",
+                attribution="© IGN PNOA" if provider == providers[0] and basemap.upper() == "PNOA" else "© OpenStreetMap contributors",
             )
             _basemap_loaded = True
             break
