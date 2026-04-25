@@ -104,6 +104,32 @@
   height: 100%;
 }
 
+/* ── Floating controls over map (draw + PNOA) ── */
+.map-floating-controls {
+  position: absolute;
+  top: 10px;
+  left: 60px;
+  z-index: 2000;
+  pointer-events: auto;
+  display: flex;
+  gap: 10px;
+}
+
+.map-floating-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.map-floating-btn:hover {
+  transform: translateY(-1px);
+}
+
 /* ── Sidebar Sections ── */
 .sidebar-section {
   padding: 16px;
@@ -536,6 +562,20 @@
     left: 16px;
     right: 16px;
     font-size: 12px;
+  }
+
+  .map-floating-controls {
+    top: 8px;
+    left: 56px;
+    right: 8px;
+    gap: 8px;
+  }
+
+  .map-floating-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 13px;
   }
 }
 

@@ -224,6 +224,21 @@ npm start
 
 La aplicación estará en: http://localhost:3000
 
+> **Importante (Docker/Nginx):** Si estás ejecutando la app con `docker compose` (servicio `geoviable-web`), el frontend se sirve desde `frontend/build` como archivos estáticos. **En ese modo, los cambios en `frontend/src` NO se aplican hasta ejecutar `npm run build`.**
+>
+> ```bash
+> cd frontend
+> npm run build
+> ```
+>
+> Después, recarga el navegador (Ctrl+F5). Si no se refleja el cambio, reinicia Nginx:
+>
+> ```bash
+> docker compose restart geoviable-web
+> ```
+
+> **Nota:** Si trabajas con `npm start` (dev server de React), no necesitas `npm run build` para cada cambio.
+
 ### Ejecutar Tests
 
 ```bash

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, WMSTileLayer, useMap } from 'react-leaflet';
 import { validateGeoJSONGeometry } from '../utils/validation';
 
 const L = window.L;
@@ -131,44 +131,43 @@ function GeomanController({ onPolygonSet, onPolygonClear, onError }) {
 }
 
 // ── Custom "✏️ Dibujar" button that sits over the map ──
-function DrawButton({ isDrawing, onToggle }) {
+function ControlGroup({ isDrawing, onToggleDraw, pnoaVisible, setPnoaVisible }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 10,
-        left: 60,
-        zIndex: 1000,
-        pointerEvents: 'auto',
-      }}
-    >
+    <div className="map-floating-controls">
       <button
-        onClick={onToggle}
+        onClick={onToggleDraw}
+        className="map-floating-btn"
         style={{
-          padding: '8px 14px',
-          fontSize: 14,
           fontWeight: 600,
           border: isDrawing ? '2px solid var(--color-blue)' : '2px solid #fff',
           borderRadius: 6,
           background: isDrawing ? 'var(--color-blue)' : '#fff',
           color: isDrawing ? '#fff' : 'var(--color-gray-700)',
-          cursor: 'pointer',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          transition: 'all 0.15s',
         }}
         title={isDrawing ? 'Cancelar dibujo' : 'Activar modo dibujo de polígono'}
       >
         ✏️ Dibujar
+      </button>
+
+      <button
+        onClick={() => setPnoaVisible(!pnoaVisible)}
+        className="map-floating-btn"
+        style={{
+          fontWeight: 600,
+          border: '2px solid var(--color-blue)',
+          borderRadius: 6,
+          background: pnoaVisible ? 'var(--color-blue)' : '#fff',
+          color: pnoaVisible ? '#fff' : 'var(--color-gray-700)',
+        }}
+      >
+        {pnoaVisible ? '🛰️ Satélite ON' : '🗺️ Satélite OFF'}
       </button>
     </div>
   );
 }
 
 // ── Main MapViewer component ──
-function MapViewer({ polygonGeoJSON, onPolygonSet, onPolygonClear, onError, analysisResults }) {
+function MapViewer({ polygonGeoJSON, onPolygonSet, onPolygonClear, onError, analysisResults, pnoaVisible, setPnoaVisible }) {
   const mapRef = useRef(null);
   const analysisLayersRef = useRef([]);
 
@@ -336,15 +335,24 @@ function MapViewer({ polygonGeoJSON, onPolygonSet, onPolygonClear, onError, anal
         />
 
         {/* ── Basemap: PNOA-IGN Satellite (optional layer) ── */}
-        <TileLayer
+        <WMSTileLayer
           attribution='&copy; <a href="https://www.ign.es">PNOA-IGN</a>'
-          url="https://www.ign.es/wmts/pnoa-ma?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=OI.OrthoimageCoverage&FORMAT=image/jpeg&TILEMATRIXSET=GoogleMapsCompatible&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
-          opacity={0}
+          url="https://www.ign.es/wms-inspire/pnoa-ma"
+          layers="OI.OrthoimageCoverage"
+          format="image/jpeg"
+          version="1.3.0"
+          transparent={false}
+          opacity={pnoaVisible ? 1 : 0}
         />
       </MapContainer>
 
-      {/* Custom draw toggle button */}
-      <DrawButton isDrawing={isDrawing} onToggle={toggleDrawing} />
+      {/* Map controls group */}
+      <ControlGroup 
+        isDrawing={isDrawing} 
+        onToggleDraw={toggleDrawing} 
+        pnoaVisible={pnoaVisible}
+        setPnoaVisible={setPnoaVisible}
+      />
     </div>
   );
 }

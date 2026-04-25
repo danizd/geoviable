@@ -21,6 +21,7 @@ function AnalysisPage() {
   const [toast, setToast] = useState(null);
   const [analysisResults, setAnalysisResults] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pnoaVisible, setPnoaVisible] = useState(false);
 
   // ── Toast notification helper ──
   const showToast = useCallback((message, type = 'error') => {
@@ -108,7 +109,14 @@ function AnalysisPage() {
 
       // Paso 2: navegar a la página de informe
       showToast('Redirigiendo al informe...', 'info');
-      navigate('/report', { state: { polygonGeoJSON, project, analysisResults: analysis } });
+      const basemap = pnoaVisible ? 'PNOA' : 'OpenStreetMap';
+      navigate('/report', { 
+        state: { 
+          polygonGeoJSON, 
+          project: { ...project, basemap }, 
+          analysisResults: analysis 
+        } 
+      });
     } catch (err) {
       showToast(err.message || 'Error al generar el informe.', 'error');
     } finally {
@@ -153,6 +161,8 @@ function AnalysisPage() {
             isLoadingLayers={isLoadingLayers}
             onGenerateReport={handleGenerateReport}
             isGenerating={isGenerating}
+            pnoaVisible={pnoaVisible}
+            onTogglePnoa={() => setPnoaVisible(v => !v)}
           />
         </aside>
 
@@ -164,6 +174,8 @@ function AnalysisPage() {
             onPolygonClear={handlePolygonClear}
             onError={showToast}
             analysisResults={analysisResults}
+            pnoaVisible={pnoaVisible}
+            setPnoaVisible={setPnoaVisible}
           />
         </main>
       </div>

@@ -21,6 +21,8 @@ function ToolPanel({
   isLoadingLayers,
   onGenerateReport,
   isGenerating,
+  pnoaVisible,
+  onTogglePnoa,
 }) {
   return (
     <div className="tool-panel">
@@ -41,7 +43,19 @@ function ToolPanel({
         />
       </div>
 
-      {/* ── Section 3: Project Info ── */}
+      {/* ── Section 3: Basemap Selector ── */}
+      <div className="sidebar-section">
+        <h3>Mapa base</h3>
+        <button
+          className={`draw-btn ${pnoaVisible ? 'active' : ''}`}
+          onClick={onTogglePnoa}
+          type="button"
+        >
+          {pnoaVisible ? '🛰️ PNOA satélite activado' : '🗺️ Activar PNOA satélite'}
+        </button>
+      </div>
+
+      {/* ── Section 4: Project Info ── */}
       <div className="sidebar-section">
         <h3>Datos del proyecto</h3>
         <ProjectForm
@@ -50,7 +64,7 @@ function ToolPanel({
         />
       </div>
 
-      {/* ── Section 4: Generate Report ── */}
+      {/* ── Section 5: Generate Report ── */}
       <div className="sidebar-section">
         <GenerateReport
           hasPolygon={!!polygonGeoJSON}
