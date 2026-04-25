@@ -115,8 +115,15 @@ sequenceDiagram
     FE->>FE: Parsea archivo a GeoJSON (local)
     FE->>FE: Valida: 1 solo polígono,<br/>área < 100 km², vértices < 10.000
     U->>FE: Introduce nombre del proyecto
+    U->>FE: Click "Cargar capas"
+    FE->>NG: POST /api/v1/analyze<br/>(GeoJSON EPSG:4326)
+    NG->>API: proxy_pass
+    API->>DB: SELECT con ST_Transform + ST_Intersects + ST_Area
+    DB-->>API: Resultados de intersección
+    API-->>NG: JSON de análisis
+    NG-->>FE: Resultado de análisis
     U->>FE: Click "Generar informe"
-    FE->>NG: POST /api/v1/report/generate<br/>(GeoJSON EPSG:4326 + metadatos)
+    FE->>NG: POST /api/v1/report/generate<br/>(GeoJSON + metadatos + basemap)
     NG->>API: proxy_pass
     API->>API: Validar GeoJSON (topología,<br/>límites, un solo polígono)
     API->>DB: SELECT con ST_Transform +<br/>ST_Intersects + ST_Area
@@ -153,10 +160,11 @@ WHERE ST_Intersects(
 
 ### Decisión de diseño: endpoint unificado
 
-> **ADR-001:** Se usa un **único endpoint** (`POST /api/v1/report/generate`) que realiza el análisis y genera el PDF en una sola llamada. No se separa en dos pasos (analizar → generar) porque:
-> 1. El MVP es de uso interno con pocos usuarios concurrentes.
-> 2. Evita duplicación de lógica y complejidad de gestión de sesiones/caché.
-> 3. El endpoint `/api/v1/analyze` se mantiene como **utilidad de desarrollo** para depurar resultados sin generar PDF.
+> **ADR-001 (estado actual):** El frontend usa **dos endpoints** en el flujo habitual:
+> 1. `POST /api/v1/analyze` para previsualizar afecciones sobre el mapa.
+> 2. `POST /api/v1/report/generate` para generar y descargar el PDF.
+>
+> El endpoint de informe sigue ejecutando análisis internamente para garantizar consistencia y autonomía del PDF.
 
 ## 5. Flujo de red (producción)
 

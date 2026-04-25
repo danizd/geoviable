@@ -8,7 +8,7 @@
 | `react-dom` | 18.x | Renderizado DOM |
 | `react-leaflet` | 4.x | Componentes React para Leaflet |
 | `leaflet` | 1.9.x | Motor de mapas |
-| `leaflet-draw` o `@geoman-io/leaflet-geoman-free` | última | Herramientas de dibujo de polígonos |
+| `@geoman-io/leaflet-geoman-free` | última | Herramientas de dibujo/edición/eliminación de polígonos |
 | `@turf/turf` | 7.x | Cálculos geoespaciales en cliente (área, validación) |
 | `togeojson` | 5.x | Parseo de KML/KMZ → GeoJSON |
 | `shpjs` | 4.x | Parseo de Shapefile (.zip) → GeoJSON |
@@ -53,23 +53,29 @@
 | Zoom inicial | 8 |
 | Zoom mínimo | 6 |
 | Zoom máximo | 18 |
-| Capa base por defecto | OpenStreetMap |
-| Capa base alternativa | PNOA-IGN (WMS: `https://www.ign.es/wms-inspire/pnoa-ma`) |
-| Controles | Zoom, selector de capa base, escala |
+| Capa base por defecto | OpenStreetMap (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`) |
+| Capa alternativa (conmutable) | PNOA-IGN (WMS: `https://www.ign.es/wms-inspire/pnoa-ma`, layer `OI.OrthoimageCoverage`) |
+| Controles visibles | Zoom (Leaflet), toolbar Geoman, botones flotantes (`Dibujar`, `Satélite ON/OFF`) |
 
 **Comportamiento:**
 - Al cargar/dibujar un polígono, el mapa ajusta automáticamente el zoom (`fitBounds`) al polígono.
-- El polígono del usuario se dibuja con borde azul (#2563EB), relleno semitransparente (opacity 0.2).
-- Las capas ambientales **no** se visualizan en el mapa del frontend (solo existen en BD).
+- El polígono del usuario se dibuja con borde `#334155` y relleno semitransparente (`opacity: 0.15`).
+- La capa PNOA se activa/desactiva con botón `Satélite ON/OFF` (en mapa y en sidebar).
+- Las afecciones del análisis **sí** se pintan en el mapa tras pulsar `Cargar capas en el polígono`, usando `intersection_geometry` devuelta por la API.
+- Las geometrías de afección muestran tooltip con nombre de capa y etiqueta de entidad cuando existe.
 
 ### 3.2. Panel de herramientas — Sidebar (`<ToolPanel />`)
 
-#### Sección de dibujo (`<DrawTools />`)
+#### Sección de dibujo (`<DrawTools />` + Geoman)
 
-- Botón "Dibujar polígono": activa el modo de dibujo en el mapa.
-- Botón "Editar": permite modificar vértices del polígono existente.
-- Botón "Borrar": elimina el polígono actual.
-- **Restricción:** Solo se permite un polígono a la vez. Si se intenta dibujar otro, se muestra un modal de confirmación: _"Ya existe un polígono. ¿Deseas reemplazarlo?"_.
+- Botón `Dibujar polígono`: activa/cancela el modo dibujo.
+- Edición y borrado disponibles desde la toolbar de Geoman (iconos sobre el mapa).
+- **Restricción:** solo se permite un polígono a la vez. Si ya existe uno, al intentar dibujar otro se muestra un error y se exige borrarlo primero.
+
+#### Sección de mapa base (`Mapa base`)
+
+- Botón de alternancia para activar/desactivar `PNOA satélite` desde la sidebar.
+- Este control replica la acción del botón flotante `Satélite ON/OFF` del mapa.
 
 #### Sección de subida de archivos (`<FileUploader />`)
 
@@ -107,8 +113,10 @@ flowchart TD
 
 #### Sección de generación (`<GenerateReport />`)
 
+- **Botón previo:** `Cargar capas en el polígono` (ejecuta `POST /api/v1/analyze` y pinta afecciones en el mapa).
 - **Botón principal:** "Generar informe de viabilidad (PDF)" — estilo CTA prominente.
 - **Deshabilitado** si no hay polígono cargado o si falta el nombre del proyecto.
+- Al generar informe, se envía en `project.basemap` la preferencia de mapa base (`PNOA` u `OpenStreetMap`) para el mapa estático del PDF.
 - **Estados del botón:**
 
 | Estado | Visual |
@@ -153,3 +161,9 @@ flowchart TD
 - Lazy loading de las librerías de parseo (shpjs, dxf-parser) — solo se cargan cuando el usuario sube un archivo del tipo correspondiente.
 - El build de React se sirve pre-comprimido (gzip) desde Nginx.
 - No hay polling ni WebSockets en el MVP — la comunicación es request/response simple.
+
+## 7. Nota de despliegue frontend
+
+- En ejecución con Docker/Nginx (`geoviable-web`), la UI se sirve desde `frontend/build`.
+- Los cambios en `frontend/src` no se reflejan hasta ejecutar `npm run build`.
+- Si tras recompilar no se actualiza el navegador, reiniciar `geoviable-web`.

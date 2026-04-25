@@ -14,7 +14,7 @@ Sin autenticación en el MVP. La API es de acceso libre.
 
 Recibe la geometría del usuario y devuelve los resultados del análisis espacial en JSON.
 
-> **Uso principal:** Depuración y desarrollo. En producción, el flujo normal usa `/report/generate`.
+> **Uso en implementación actual:** además de depuración, el frontend lo usa para previsualizar afecciones en el mapa antes de generar el PDF.
 
 #### Request
 
@@ -190,7 +190,8 @@ Realiza el análisis espacial y genera un informe PDF completo.
     "project": {
         "name": "Ampliación nave industrial — Parcela 234",
         "author": "Estudio Técnico López",
-        "description": "Evaluación previa para licencia urbanística"
+        "description": "Evaluación previa para licencia urbanística",
+        "basemap": "PNOA"
     }
 }
 ```
@@ -202,11 +203,13 @@ Realiza el análisis espacial y genera un informe PDF completo.
 | `name` | string | ✅ | 3-100 caracteres |
 | `author` | string | ❌ | 0-100 caracteres |
 | `description` | string | ❌ | 0-500 caracteres |
+| `basemap` | string | ❌ | `PNOA` u `OpenStreetMap` (default backend: `OpenStreetMap`) |
 
 #### Validaciones
 
 Mismas validaciones del GeoJSON que en `/analyze`, más:
 - `project.name` es obligatorio y debe tener 3-100 caracteres.
+- Si `project.basemap` no se envía, el backend usa `OpenStreetMap` para el mapa estático del PDF.
 
 #### Response — 200 OK
 
@@ -221,8 +224,10 @@ Mismos códigos que `/analyze`, más:
 
 | Código | Escenario | HTTP |
 |---|---|---|
+| `MISSING_GEOJSON` | Falta el campo `geojson` en el body | 422 |
 | `MISSING_PROJECT_NAME` | No se proporcionó nombre del proyecto | 422 |
-| `PDF_GENERATION_FAILED` | Error interno al generar el PDF | 500 |
+| `PROJECT_NAME_TOO_LONG` | Nombre de proyecto > 100 caracteres | 422 |
+| `PDF_GENERICATION_FAILED` | Error interno al generar el PDF | 500 |
 
 ---
 

@@ -143,19 +143,22 @@ Genera una imagen PNG del polígono del usuario superpuesto a un mapa base.
 | Aspecto | Detalle |
 |---|---|
 | Librería | `contextily` (descargar tiles) + `matplotlib` + `geopandas` |
-| Mapa base | OpenStreetMap o Stamen Terrain |
+| Mapa base | `PNOA` (WMTS IGN) u `OpenStreetMap` (fallback automático también a CartoDB Positron) |
 | Formato de salida | PNG, 300 DPI, ~1200×800 px |
-| Contenido | Polígono del usuario (borde azul, relleno semitransparente) + afecciones superpuestas con colores diferenciados |
+| Contenido | Polígono del usuario (borde `#334155`, relleno semitransparente) + afecciones superpuestas con colores diferenciados |
 | Margen | Bbox del polígono con un 20% de padding |
 
 ### Flujo
 
 1. Crear un `GeoDataFrame` con el polígono del usuario en EPSG:25830.
 2. Reproyectar a EPSG:3857 (Web Mercator) para alinear con los tiles.
-3. Añadir tiles de fondo con `contextily.add_basemap()`.
-4. Superponer las geometrías de las afecciones detectadas (con leyenda por color).
-5. Guardar como PNG en buffer de memoria.
-6. Devolver bytes de la imagen para inyectar en la plantilla HTML del PDF.
+3. Seleccionar proveedores según `project.basemap` recibido en `/report/generate`:
+    - Si `basemap == "PNOA"`, intentar primero WMTS IGN (`OI.OrthoimageCoverage`).
+    - En cualquier caso, fallback secuencial a OpenStreetMap y CartoDB Positron.
+4. Añadir tiles de fondo con `contextily.add_basemap()`.
+5. Superponer las geometrías de las afecciones detectadas (con leyenda por color).
+6. Guardar como PNG en buffer de memoria.
+7. Devolver bytes de la imagen para inyectar en la plantilla HTML del PDF.
 
 ## 5. Servicio de generación de PDF (`pdf_generator.py`)
 

@@ -69,7 +69,7 @@
 │  │                                      │    │
 │  │    [Imagen mapa estático 300 DPI]    │    │
 │  │                                      │    │
-│  │    - Polígono del usuario (azul)     │    │
+│  │    - Polígono del usuario (gris pizarra)│  │
 │  │    - Afecciones superpuestas         │    │
 │  │      (colores diferenciados)         │    │
 │  │                                      │    │
@@ -77,14 +77,15 @@
 │                                              │
 │  Leyenda:                                    │
 │  ■ Parcela analizada                         │
-│  ■ Red Natura 2000 (rojo)                    │
-│  ■ Zonas inundables (azul claro)             │
-│  ■ DPH (azul oscuro)                         │
-│  ■ Vías pecuarias (marrón)                   │
-│  ■ ENP (verde)                               │
-│  ■ Masas de agua (cian)                      │
+│  ■ Red Natura 2000 (naranja)                 │
+│  ■ Zonas inundables (magenta)                │
+│  ■ DPH (violeta)                             │
+│  ■ Vías pecuarias (ámbar)                    │
+│  ■ ENP (rosa oscuro)                         │
+│  ■ Masas de agua superficial (teal)          │
+│  ■ Masas de agua subterránea (índigo)        │
 │                                              │
-│  Fuente cartográfica: OpenStreetMap           │
+│  Fuente cartográfica: PNOA-IGN u OpenStreetMap│
 │  Sistema de coordenadas: ETRS89/UTM 30N     │
 └──────────────────────────────────────────────┘
 ```
@@ -93,13 +94,14 @@
 
 | Capa | Color | Hex |
 |---|---|---|
-| Parcela del usuario | Azul | `#2563EB` |
-| Red Natura 2000 | Rojo | `#DC2626` |
-| Zonas inundables | Azul claro | `#60A5FA` |
-| DPH | Azul oscuro | `#1E40AF` |
-| Vías pecuarias | Marrón | `#92400E` |
-| ENP | Verde | `#16A34A` |
-| Masas de agua | Cian | `#06B6D4` |
+| Parcela del usuario | Gris pizarra | `#334155` |
+| Red Natura 2000 | Naranja | `#F97316` |
+| Zonas inundables | Magenta | `#A21CAF` |
+| DPH | Violeta | `#7C3AED` |
+| Vías pecuarias | Ámbar | `#CA8A04` |
+| ENP | Rosa oscuro | `#BE185D` |
+| Masas de agua superficial | Teal | `#0D9488` |
+| Masas de agua subterránea | Índigo | `#6D28D9` |
 
 ### Página 3: Resumen ejecutivo
 
@@ -204,17 +206,11 @@ Solo se generan secciones para las capas donde se detectó afección. Cada capa 
 
 ### Plantilla Jinja2
 
-La plantilla reside en `backend/app/templates/report/` y consta de:
+La implementación actual reside en `backend/app/templates/report/report.html` (plantilla única con secciones internas).
 
 | Archivo | Propósito |
 |---|---|
-| `base.html` | Layout general: header, footer, paginación |
-| `cover.html` | Portada (incluida en base.html) |
-| `map.html` | Sección del mapa (la imagen se inyecta como data URI base64) |
-| `summary.html` | Resumen ejecutivo + tabla resumen |
-| `detail.html` | Bloque reutilizable para cada capa afectada |
-| `disclaimer.html` | Notas y disclaimers finales |
-| `styles.css` | Estilos CSS compatibles con WeasyPrint |
+| `report.html` | Plantilla única completa: portada, mapa, resumen, detalle por capas y disclaimers |
 
 ### Inyección de la imagen del mapa
 
